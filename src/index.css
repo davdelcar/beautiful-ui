@@ -1,0 +1,14 @@
+/* Base oficial de Beautiful UI (sincronizada desde el registro). */
+@import "./app/beautifui/foundation.css";
+@import "./app/beautifui/records-table.css";
+@import "./app/beautifui/sidebar-nav.css";
+
+/* Las fuentes las inyecta next/font en el original; aquí vienen de Google Fonts. */
+:root {
+  --font-inter: "Inter";
+  --font-mono-face: "JetBrains Mono";
+}
+
+body {
+  font-family: var(--font-sans);
+}
