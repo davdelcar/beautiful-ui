@@ -1,0 +1,22 @@
+{
+  "name": "beautiful-ui-mcp",
+  "version": "1.0.0",
+  "description": "Servidor MCP y skill del sistema de diseño Beautiful UI.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "beautiful-ui-mcp": "server.mjs"
+  },
+  "files": [
+    "server.mjs",
+    "skill"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davdelcar/beautiful-ui.git",
+    "directory": "mcp"
+  }
+}

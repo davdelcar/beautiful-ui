@@ -3,3 +3,5 @@ dist
 *.local
 public/r
 *.tsbuildinfo
+public/mcp
+public/skill

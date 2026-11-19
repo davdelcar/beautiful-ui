@@ -15,7 +15,8 @@
  * traigan de vuelta el foundation.css roto del registro original.
  * Las dependencias npm y entre items se deducen de los imports de cada archivo.
  */
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
+import { copyFile, mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -208,3 +209,20 @@ await writeFile(
 console.log(`✓ ${items.size} items en public/r (base ${BASE})`);
 for (const it of items.values())
   console.log(`  ${it.name.padEnd(20)} ${String(it.files.length).padStart(2)} archivos  deps: ${(it.dependencies ?? []).join(", ") || "—"}`);
+
+/* ── MCP + skill para agentes ────────────────────────────────────────────
+ * public/skill/SKILL.md        → skill publicada (el instalador la lee en vivo)
+ * public/mcp/beautiful-ui-mcp.tgz → npx -y <url>.tgz [install]                */
+const SKILL_OUT = join(ROOT, "public", "skill");
+const MCP_OUT = join(ROOT, "public", "mcp");
+await rm(SKILL_OUT, { recursive: true, force: true });
+await rm(MCP_OUT, { recursive: true, force: true });
+await mkdir(SKILL_OUT, { recursive: true });
+await mkdir(MCP_OUT, { recursive: true });
+await copyFile(join(ROOT, "mcp", "skill", "SKILL.md"), join(SKILL_OUT, "SKILL.md"));
+const packed = execFileSync("npm", ["pack", join(ROOT, "mcp"), "--pack-destination", MCP_OUT, "--silent"], { encoding: "utf8" })
+  .trim()
+  .split("\n")
+  .pop();
+await rename(join(MCP_OUT, packed), join(MCP_OUT, "beautiful-ui-mcp.tgz"));
+console.log(`✓ skill en public/skill · MCP en public/mcp/beautiful-ui-mcp.tgz`);
