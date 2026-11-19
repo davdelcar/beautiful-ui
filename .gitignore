@@ -5,3 +5,6 @@ public/r
 *.tsbuildinfo
 public/mcp
 public/skill
+public/tokens.json
+test-results
+playwright-report

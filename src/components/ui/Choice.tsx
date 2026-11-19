@@ -14,6 +14,7 @@ export function Checkbox({
   label,
   disabled,
   className,
+  "aria-label": ariaLabel,
 }: {
   checked: boolean;
   indeterminate?: boolean;
@@ -21,6 +22,8 @@ export function Checkbox({
   label?: ReactNode;
   disabled?: boolean;
   className?: string;
+  /** nombre accesible cuando no hay `label` visible */
+  "aria-label"?: string;
 }) {
   const on = checked || indeterminate;
   return (
@@ -28,6 +31,7 @@ export function Checkbox({
       <input
         type="checkbox"
         className="peer sr-only"
+        aria-label={ariaLabel}
         checked={checked}
         disabled={disabled}
         ref={(el) => {
@@ -96,16 +100,19 @@ export function Switch({
   label,
   disabled,
   className,
+  "aria-label": ariaLabel,
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
   label?: ReactNode;
   disabled?: boolean;
   className?: string;
+  /** nombre accesible cuando no hay `label` visible */
+  "aria-label"?: string;
 }) {
   return (
     <label className={cn("inline-flex items-center gap-2 text-[13px] text-ink", disabled && "opacity-50", className)}>
-      <input type="checkbox" role="switch" className="peer sr-only" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
+      <input type="checkbox" role="switch" className="peer sr-only" aria-label={ariaLabel} checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
       <span
         aria-hidden
         className={cn(

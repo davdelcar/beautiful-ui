@@ -22,7 +22,9 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = join(ROOT, "src");
-const OUT = join(ROOT, "public", "r");
+/* REGISTRY_OUT: escribe solo el registro en otra carpeta (snapshots versionados en CI) */
+const OUT = process.env.REGISTRY_OUT || join(ROOT, "public", "r");
+const ONLY_REGISTRY = !!process.env.REGISTRY_OUT;
 const BASE = (process.env.REGISTRY_URL || "https://davdelcar.github.io/beautiful-ui/r").replace(/\/$/, "");
 const HOMEPAGE = BASE.replace(/\/r$/, "");
 const SCHEMA_ITEM = "https://ui.shadcn.com/schema/registry-item.json";
@@ -42,6 +44,9 @@ const itemNameFor = (file) => {
 function itemForImport(spec) {
   if (spec === "@/lib/utils") return "utils";
   if (spec.startsWith("@/components/ui")) return "ui-kit";
+  if (spec.startsWith("@/components/form")) return "form";
+  const b = spec.match(/^@\/components\/blocks\/(.+)$/);
+  if (b) return kebab(b[1]);
   if (spec === "@/components/vendor/central-icons") return "central-icons";
   const m = spec.match(/^@\/components\/(atoms|primitives)\/(.+)$/);
   return m ? itemNameFor(m[2]) : null;
@@ -173,13 +178,44 @@ await addItem({
   files: kitFiles.map((f) => ({ from: `components/ui/${f}`, to: `components/ui/${f}` })),
 });
 
+/* ── formularios con validación (deps aparte: react-hook-form + zod) ───── */
+await addItem({
+  name: "form",
+  type: "registry:ui",
+  title: "Formularios",
+  description: "Form, FormField, FormSubmit, FormError y useZodForm: react-hook-form + zod sobre los campos del kit.",
+  extraRegistryDeps: ["ui-kit"],
+  files: (await readdir(join(SRC, "components", "form"))).sort().map((f) => ({ from: `components/form/${f}`, to: `components/form/${f}` })),
+});
+
+/* ── plantillas de página ────────────────────────────────────────────── */
+const BLOCK_INFO = {
+  LoginPage: "Login y registro con validación y proveedores sociales.",
+  ListDetailPage: "Listado con filtros, tabla ordenable/paginada, detalle en Sheet y menú contextual.",
+  AnalyticsPage: "Analítica: filtros de fecha, KPIs con sparkline, línea, barras apiladas y cuota.",
+  SettingsPage: "Ajustes: subnavegación, perfil con formulario, notificaciones, tema y acento.",
+  WizardPage: "Alta por pasos con Stepper y validación por paso.",
+  ErrorPage: "Páginas 404 / 403 / 500 / mantenimiento.",
+};
+for (const file of (await readdir(join(SRC, "components", "blocks"))).sort()) {
+  const base = file.replace(/\.tsx$/, "");
+  await addItem({
+    name: kebab(base),
+    type: "registry:block",
+    title: base,
+    description: `Plantilla. ${BLOCK_INFO[base] ?? ""}`.trim(),
+    extraRegistryDeps: ["ui-kit"],
+    files: [{ from: `components/blocks/${file}`, to: `components/blocks/${file}`, type: "registry:component" }],
+  });
+}
+
 /* ── all ─────────────────────────────────────────────────────────────── */
 items.set("all", {
   $schema: SCHEMA_ITEM,
   name: "all",
   type: "registry:block",
   title: "Beautiful UI completo",
-  description: "Fundación, átomos, los 20 componentes oficiales y el kit básico.",
+  description: "Fundación, átomos, los 20 componentes de IA, el kit básico, formularios y plantillas.",
   registryDependencies: [...items.keys()].sort(),
   files: [],
 });
@@ -194,12 +230,14 @@ for (const it of items.values()) {
 await rm(OUT, { recursive: true, force: true });
 await mkdir(OUT, { recursive: true });
 for (const it of items.values()) await writeFile(join(OUT, `${it.name}.json`), JSON.stringify(it, null, 2) + "\n");
+const PKG = JSON.parse(await readFile(join(ROOT, "package.json"), "utf8"));
 await writeFile(
   join(OUT, "registry.json"),
   JSON.stringify(
     {
       $schema: "https://ui.shadcn.com/schema/registry.json",
       name: "beautiful-ui",
+      version: PKG.version,
       homepage: HOMEPAGE,
       items: [...items.values()].map(({ name, type, title, description }) => ({ name, type, title, description })),
     },
@@ -211,6 +249,55 @@ await writeFile(
 console.log(`✓ ${items.size} items en public/r (base ${BASE})`);
 for (const it of items.values())
   console.log(`  ${it.name.padEnd(20)} ${String(it.files.length).padStart(2)} archivos  deps: ${(it.dependencies ?? []).join(", ") || "—"}`);
+
+if (ONLY_REGISTRY) process.exit(0);
+
+/* ── tokens en formato DTCG (Figma Tokens Studio, Style Dictionary…) ──── */
+const cssVars = (css, selector) => {
+  const out = {};
+  for (const m of css.matchAll(new RegExp(`(?:^|\\n)${selector.replace(/[.[\]]/g, "\\$&")} \\{([^}]*)\\}`, "g")))
+    for (const v of m[1].matchAll(/--([\w-]+):\s*([^;]+);/g)) out[v[1]] = v[2].replace(/\s+/g, " ").trim();
+  return out;
+};
+const foundationCss = await readFile(join(SRC, "app/beautifui/foundation.css"), "utf8");
+const kitCss = await readFile(join(SRC, "styles/kit.css"), "utf8");
+const light = { ...cssVars(foundationCss, ":root"), ...cssVars(kitCss, ":root") };
+const dark = { ...cssVars(foundationCss, ".dark"), ...cssVars(kitCss, ".dark") };
+const theme = { ...cssVars(foundationCss, "@theme inline"), ...cssVars(kitCss, "@theme") };
+const group = (name) =>
+  /^(page|canvas|surface|inset|hover|hover-2|field|stripe|stripe-bg)$/.test(name) ? "surface"
+  : /^ink/.test(name) ? "ink"
+  : /^(line|grid-line)/.test(name) ? "border"
+  : /^(accent|green|orange|red)/.test(name) ? "semantic"
+  : /^tooltip/.test(name) ? "tooltip"
+  : /^chart/.test(name) ? "chart"
+  : /^shadow/.test(name) ? "shadow"
+  : /^(z|duration)-/.test(name) ? name.split("-")[0]
+  : null;
+const tokens = { $description: `Beautiful UI ${PKG.version} — generado de foundation.css + kit.css. Modo oscuro en $extensions.mode.dark.` };
+for (const [k, v] of Object.entries(light)) {
+  const g = group(k);
+  if (!g) continue;
+  const type = g === "shadow" ? "shadow" : g === "z" ? "number" : g === "duration" ? "duration" : "color";
+  (tokens[g] ??= {})[k] = { $type: type, $value: v, ...(dark[k] && dark[k] !== v && { $extensions: { mode: { dark: dark[k] } } }) };
+}
+for (const [k, v] of Object.entries(theme)) {
+  if (k.startsWith("radius-")) (tokens.radius ??= {})[k.slice(7)] = { $type: "dimension", $value: v };
+  else if (k.startsWith("ease-")) (tokens.easing ??= {})[k.slice(5)] = { $type: "cubicBezier", $value: v };
+  else if (k.startsWith("font-")) (tokens.font ??= {})[k.slice(5)] = { $type: "fontFamily", $value: v };
+  else if (/^text-[a-z]+$/.test(k))
+    (tokens.typography ??= {})[k.slice(5)] = {
+      $type: "typography",
+      $value: {
+        fontSize: v,
+        lineHeight: theme[`${k}--line-height`] ?? "normal",
+        letterSpacing: theme[`${k}--letter-spacing`] ?? "0",
+        fontWeight: theme[`${k}--font-weight`] ?? "400",
+      },
+    };
+}
+await writeFile(join(ROOT, "public", "tokens.json"), JSON.stringify(tokens, null, 2) + "\n");
+console.log(`✓ tokens.json (${Object.keys(tokens).length - 1} grupos)`);
 
 /* ── MCP + skill para agentes ────────────────────────────────────────────
  * public/skill/SKILL.md        → skill publicada (el instalador la lee en vivo)

@@ -134,8 +134,9 @@ const tools = {
       "Tokens de diseño de Beautiful UI: variables CSS de tema claro (:root) y oscuro (.dark) y el mapeo @theme a utilidades de Tailwind (bg-surface, text-ink-2, shadow-card, rounded-card…).",
     inputSchema: { type: "object", properties: {} },
     async run() {
-      const f = (await item("foundation")).files.find((x) => x.path.endsWith("foundation.css"));
-      const css = f.content;
+      const files = (await item("foundation")).files;
+      const css = files.find((x) => x.path.endsWith("foundation.css")).content;
+      const kit = files.find((x) => x.path.endsWith("kit.css"))?.content ?? "";
       return [
         "Usa siempre estas utilidades en lugar de colores, sombras o radios sueltos. El tema oscuro se activa con la clase .dark en <html>.",
         "```css",
@@ -145,6 +146,9 @@ const tools = {
         "",
         cssBlock(css, ".dark"),
         "```",
+        kit && "\nExtensión del kit (kit.css): escala tipográfica text-display…text-overline, paleta de series --chart-1…8, acentos [data-accent], contraste AA:",
+        kit && "```css\n" + kit.slice(0, 6000) + "\n```",
+        `Tokens en formato DTCG (Figma/Style Dictionary): ${SITE}/tokens.json`,
         "Clases de la fundación: primitive-card-bar, primitive-card-pad, primitive-card-footer, primitive-icon-button, filter-status-{todo,progress,done}.",
         `Keyframes globales: ${[...css.matchAll(/@keyframes ([\w-]+)/g)].map((m) => m[1]).join(", ")}.`,
       ].join("\n");
@@ -179,21 +183,23 @@ const tools = {
 
   get_example: {
     description:
-      "Código fuente de referencia: 'app' = app completa (sidebar, topbar, dashboard, tablas, panel de asistente) hecha solo con el sistema; 'gallery' = galería con todas las variantes.",
+      "Código fuente de referencia hecho solo con el sistema. 'app' = app con sidebar, ⌘K, dashboard y asistente; 'gallery' = galería; plantillas de página: 'login', 'listado' (tabla+filtros+Sheet), 'analitica' (gráficas), 'ajustes', 'alta' (wizard), 'error'. Instálalas con get_component '<x>-page'.",
     inputSchema: {
       type: "object",
-      properties: { page: { type: "string", enum: ["app", "gallery"], description: "Por defecto 'app'." } },
+      properties: { page: { type: "string", enum: ["app", "gallery", "login", "listado", "analitica", "ajustes", "alta", "error"], description: "Por defecto 'app'." } },
     },
     async run({ page = "app" } = {}) {
-      const path = page === "gallery" ? "src/pages/DesignSystem.tsx" : "src/pages/ExampleApp.tsx";
-      return `Fuente: ${RAW}/${path} (en vivo: ${SITE}/${page === "app" ? "#/app" : ""})\n\n\`\`\`tsx\n${await get(`${RAW}/${path}`, "text")}\n\`\`\``;
+      const TPL = { login: "LoginPage", listado: "ListDetailPage", analitica: "AnalyticsPage", ajustes: "SettingsPage", alta: "WizardPage", error: "ErrorPage" };
+      const path = page === "gallery" ? "src/pages/DesignSystem.tsx" : TPL[page] ? `src/components/blocks/${TPL[page]}.tsx` : "src/pages/ExampleApp.tsx";
+      const live = page === "app" ? "#/app" : TPL[page] ? `#/plantillas/${page}` : "";
+      return `Fuente: ${RAW}/${path} (en vivo: ${SITE}/${live})\n\n\`\`\`tsx\n${await get(`${RAW}/${path}`, "text")}\n\`\`\``;
     },
   },
 };
 
 /* ── protocolo MCP (JSON-RPC por líneas sobre stdio) ──────────────────── */
 const INSTRUCTIONS =
-  "Beautiful UI es el sistema de diseño del usuario (React + Tailwind v4, registro shadcn). Antes de construir UI con él, llama a get_guidelines; usa list_components / get_component para la API exacta y get_design_tokens para colores, sombras y radios. Nunca uses colores sueltos: solo tokens.";
+  "Beautiful UI es el sistema de diseño del usuario (React + Tailwind v4, registro shadcn). Antes de construir UI con él, llama a get_guidelines; usa list_components / get_component para la API exacta, get_design_tokens para colores, tipografía, sombras y radios, y get_example para partir de una plantilla de página (login, listado, analítica, ajustes, alta, error). Nunca uses colores sueltos: solo tokens.";
 
 const PROMPT = { name: "beautiful-ui", description: "Carga la guía de Beautiful UI para construir interfaces con el sistema de diseño." };
 

@@ -9,11 +9,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <title>Beautiful UI</title>
     <script>
-      /* tema antes del primer pintado, sin parpadeo */
+      /* tema y acento antes del primer pintado, sin parpadeo (= themeScript del kit) */
       try {
         var t = localStorage.getItem("bui-theme");
         if (t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches)
           document.documentElement.classList.add("dark");
+        var a = localStorage.getItem("bui-accent");
+        if (a && a !== "blue") document.documentElement.dataset.accent = a;
       } catch (e) {}
     </script>
   </head>

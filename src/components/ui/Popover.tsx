@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { IconCheck, IconChevronDown, IconSearch } from "./icons";
 import { matches, useListNav } from "./listbox";
 import { usePopover } from "./Overlay";
+import { useLabels } from "./i18n";
 
 const POP = "pop-in 180ms cubic-bezier(0.23,1,0.32,1) both";
 
@@ -80,9 +81,9 @@ export function Combobox<T extends string>({
   value,
   onChange,
   options,
-  placeholder = "Seleccionar",
-  searchPlaceholder = "Buscar…",
-  emptyText = "Sin resultados",
+  placeholder,
+  searchPlaceholder,
+  emptyText,
   className,
 }: {
   value: T | null;
@@ -94,6 +95,7 @@ export function Combobox<T extends string>({
   className?: string;
 }) {
   const { open, setOpen, ref } = usePopover();
+  const L = useLabels();
   const [query, setQuery] = useState("");
   const triggerRef = useRef<HTMLButtonElement>(null);
   const current = options.find((o) => o.value === value);
@@ -132,7 +134,7 @@ export function Combobox<T extends string>({
       >
         <span className={cn("flex min-w-0 items-center gap-2", current ? "text-ink" : "text-ink-3")}>
           {current?.icon && <span className="flex shrink-0 text-ink-3">{current.icon}</span>}
-          <span className="truncate">{current?.label ?? placeholder}</span>
+          <span className="truncate">{current?.label ?? placeholder ?? L.select}</span>
         </span>
         <IconChevronDown size={13} className="shrink-0 text-ink-3 transition-transform duration-200" style={{ transform: open ? "rotate(180deg)" : undefined }} />
       </button>
@@ -157,12 +159,12 @@ export function Combobox<T extends string>({
                 nav.setActive(0);
               }}
               onKeyDown={nav.onKeyDown}
-              placeholder={searchPlaceholder}
+              placeholder={searchPlaceholder ?? L.search}
               className="h-9 min-w-0 flex-1 bg-transparent text-body text-ink outline-none placeholder:text-ink-3 focus-visible:shadow-none"
             />
           </div>
           <div id={nav.listId} role="listbox" className="max-h-64 overflow-y-auto p-1">
-            {visible.length === 0 && <div className="px-2 py-6 text-center text-meta text-ink-3">{emptyText}</div>}
+            {visible.length === 0 && <div className="px-2 py-6 text-center text-meta text-ink-3">{emptyText ?? L.noResults}</div>}
             {visible.map((o, i) => (
               <div
                 key={o.value}

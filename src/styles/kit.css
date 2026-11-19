@@ -93,3 +93,225 @@ dialog.bui-dialog::backdrop {
     animation: none !important;
   }
 }
+
+/* ── contraste AA (WCAG 2.1, 4.5:1 en texto normal) ─────────────────────
+ * La fundación oficial deja ink-3, los semánticos y el acento por debajo de
+ * 4.5:1 en texto pequeño. Estos valores mantienen la jerarquía y el tono y
+ * pasan axe en claro y oscuro (verificado en tests/e2e). */
+:root {
+  --ink-2: oklch(0.45 0.01 264.5);
+  --ink-3: oklch(0.53 0.01 264.5);
+  --accent: oklch(0.56 0.2 256);
+  --accent-ink: oklch(0.52 0.19 256);
+  --green: oklch(0.51 0.135 150);
+  --orange: oklch(0.53 0.145 48);
+  --red: oklch(0.53 0.19 25);
+  /* rellenos con texto blanco encima (botones de éxito/peligro) */
+  --green-solid: oklch(0.51 0.135 150);
+  --red-solid: oklch(0.53 0.19 25);
+}
+.dark {
+  --ink-2: oklch(0.78 0.008 260);
+  --ink-3: oklch(0.68 0.01 264.5);
+  --accent: oklch(0.56 0.19 256);
+  --accent-ink: oklch(0.79 0.11 248);
+  --green: oklch(0.73 0.15 153);
+  --orange: oklch(0.78 0.15 55);
+  --red: oklch(0.72 0.17 21);
+  --green-solid: oklch(0.5 0.13 153);
+  --red-solid: oklch(0.53 0.19 22);
+}
+
+@theme inline {
+  --color-green-solid: var(--green-solid);
+  --color-red-solid: var(--red-solid);
+}
+
+/* texto blanco sobre verde/rojo (p. ej. Button variant="success" oficial):
+ * usa el relleno oscuro para que el texto pase AA también en modo oscuro */
+.bg-green.text-white {
+  background-color: var(--green-solid);
+}
+.bg-red.text-white {
+  background-color: var(--red-solid);
+}
+
+/* pills de estado: texto más profundo en claro, más claro en oscuro */
+.filter-status-todo,
+.filter-status-progress,
+.filter-status-done {
+  color: color-mix(in oklab, var(--tag-base) 42%, var(--ink));
+  background: color-mix(in srgb, var(--tag-base) 16%, var(--surface));
+}
+.dark .filter-status-todo,
+.dark .filter-status-progress,
+.dark .filter-status-done {
+  color: color-mix(in oklab, var(--tag-base) 45%, white);
+  background: color-mix(in srgb, var(--tag-base) 26%, var(--surface));
+}
+
+/* ── paleta de series para gráficas ────────────────────────
+ * Orden fijo (nunca cíclico), validado con el validador CVD contra
+ * surface blanca (claro) y #232427 (oscuro). En claro chart-3/4/5 quedan
+ * bajo 3:1: las gráficas siempre llevan leyenda + vista de tabla.        */
+:root {
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
+  --chart-6: #008300;
+  --chart-7: #6250d6;
+  --chart-8: #e34948;
+  /* texto dentro de un bloque de color: blanco o casi negro según luminancia (≥ 4.5:1) */
+  --chart-on-1: #000;
+  --chart-on-2: #000;
+  --chart-on-3: #000;
+  --chart-on-4: #000;
+  --chart-on-5: #000;
+  --chart-on-6: #fff;
+  --chart-on-7: #fff;
+  --chart-on-8: #000;
+  --chart-grid: var(--line);
+  --chart-axis: var(--line-strong);
+}
+.dark {
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
+  --chart-5: #d55181;
+  --chart-6: #0ca30c;
+  --chart-7: #9085e9;
+  --chart-8: #e66767;
+  --chart-on-6: #000;
+  --chart-on-7: #000;
+}
+
+/* ── acento de marca: <html data-accent="violet"> (o setAccent("violet")) ── */
+[data-accent="violet"] {
+  --accent: oklch(0.53 0.22 292);
+  --accent-ink: oklch(0.5 0.22 292);
+  --accent-tint: oklch(0.962 0.02 295);
+}
+.dark[data-accent="violet"] {
+  --accent: oklch(0.55 0.2 293);
+  --accent-ink: oklch(0.8 0.1 293);
+  --accent-tint: oklch(0.6 0.18 293 / 0.2);
+}
+[data-accent="green"] {
+  --accent: oklch(0.5 0.13 155);
+  --accent-ink: oklch(0.48 0.13 155);
+  --accent-tint: oklch(0.962 0.025 158);
+}
+.dark[data-accent="green"] {
+  --accent: oklch(0.5 0.13 155);
+  --accent-ink: oklch(0.82 0.11 155);
+  --accent-tint: oklch(0.6 0.14 155 / 0.2);
+}
+[data-accent="orange"] {
+  --accent: oklch(0.55 0.17 42);
+  --accent-ink: oklch(0.52 0.16 42);
+  --accent-tint: oklch(0.965 0.022 60);
+}
+.dark[data-accent="orange"] {
+  --accent: oklch(0.55 0.17 42);
+  --accent-ink: oklch(0.82 0.1 55);
+  --accent-tint: oklch(0.62 0.16 45 / 0.2);
+}
+[data-accent="pink"] {
+  --accent: oklch(0.54 0.2 0);
+  --accent-ink: oklch(0.52 0.2 0);
+  --accent-tint: oklch(0.962 0.02 355);
+}
+.dark[data-accent="pink"] {
+  --accent: oklch(0.55 0.2 0);
+  --accent-ink: oklch(0.82 0.1 0);
+  --accent-tint: oklch(0.6 0.19 0 / 0.2);
+}
+
+/* ── Skeleton ── */
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* ── Accordion: altura animada con grid ── */
+.bui-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--duration-slow) var(--ease-out-strong);
+}
+.bui-collapse[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+.bui-collapse > * {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── Slider nativo con la piel del sistema ── */
+.bui-range {
+  appearance: none;
+  height: 20px;
+  background: transparent;
+  cursor: pointer;
+}
+.bui-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--accent) var(--fill, 50%), var(--hover-2) var(--fill, 50%));
+}
+.bui-range::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--accent) var(--fill, 50%), var(--hover-2) var(--fill, 50%));
+}
+.bui-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--shadow-btn);
+  transition: transform 150ms var(--ease-out-strong);
+}
+.bui-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--shadow-btn);
+}
+.bui-range:active::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+.bui-range:focus-visible {
+  box-shadow: none;
+}
+.bui-range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 1px var(--accent), 0 0 0 4px var(--accent-tint);
+}
+.bui-range:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* números sin flechas nativas (NumberInput trae las suyas) */
+.bui-number::-webkit-inner-spin-button,
+.bui-number::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+.bui-number {
+  -moz-appearance: textfield;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bui-collapse {
+    transition: none;
+  }
+}

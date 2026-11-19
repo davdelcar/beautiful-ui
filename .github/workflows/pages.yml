@@ -3,6 +3,7 @@ name: Publicar galería y registro
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -11,7 +12,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -19,24 +20,56 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # las etiquetas v* generan snapshots versionados del registro
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+
+      # Pruebas unitarias (vitest) antes de nada
+      - run: npm test
+
       - id: pages
         uses: actions/configure-pages@v5
+        if: github.event_name != 'pull_request'
+
       # La galería se sirve en /<repo>/ y el registro shadcn en /<repo>/r/
       - run: npm run build
         env:
-          BASE_PATH: ${{ steps.pages.outputs.base_path }}/
-          REGISTRY_URL: ${{ steps.pages.outputs.base_url }}/r
+          BASE_PATH: ${{ steps.pages.outputs.base_path || '' }}/
+          REGISTRY_URL: ${{ steps.pages.outputs.base_url || 'https://davdelcar.github.io/beautiful-ui' }}/r
+
+      # Snapshots inmutables por versión: /r/v2.0.0/<item>.json
+      - name: Registro versionado
+        env:
+          BASE_URL: ${{ steps.pages.outputs.base_url || 'https://davdelcar.github.io/beautiful-ui' }}
+        run: |
+          for tag in $(git tag -l 'v*'); do
+            dir="$RUNNER_TEMP/$tag"
+            git worktree add -q "$dir" "$tag"
+            if [ -f "$dir/scripts/build-registry.mjs" ] && grep -q REGISTRY_OUT "$dir/scripts/build-registry.mjs"; then
+              (cd "$dir" && REGISTRY_URL="$BASE_URL/r/$tag" REGISTRY_OUT="$GITHUB_WORKSPACE/dist/r/$tag" node scripts/build-registry.mjs > /dev/null)
+              echo "✓ $tag"
+            fi
+            git worktree remove --force "$dir"
+          done
+
+      # E2E + accesibilidad (axe) sobre la build real, claro y oscuro
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path || '' }}/
+
       - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
         with:
           path: dist
 
   deploy:
     needs: build
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

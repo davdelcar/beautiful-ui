@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { IconButton } from "./Actions";
 import { IconX } from "./icons";
+import { useLabels } from "./i18n";
 
 const SIDE = {
   right: { box: "inset-y-0 right-0 left-auto h-dvh border-l", anim: "sheet-in-right" },
@@ -40,6 +41,7 @@ export function Sheet({
   className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const L = useLabels();
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
@@ -69,7 +71,7 @@ export function Sheet({
               {title && <h2 className="text-heading text-ink">{title}</h2>}
               {description && <p className="text-meta text-ink-2">{description}</p>}
             </div>
-            <IconButton label="Cerrar" tooltip={false} onClick={onClose}>
+            <IconButton label={L.close} tooltip={false} onClick={onClose}>
               <IconX size={15} />
             </IconButton>
           </div>

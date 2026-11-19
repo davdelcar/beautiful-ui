@@ -12,6 +12,7 @@ import GlideMenu from "@/components/primitives/GlideMenu";
 import { Button } from "@/components/atoms/Button";
 import { cn } from "@/lib/utils";
 import { IconCheck, IconCheckCircle, IconChevronDown } from "./icons";
+import { useLabels } from "./i18n";
 
 const POP = "pop-in 180ms cubic-bezier(0.23,1,0.32,1) both";
 
@@ -65,39 +66,101 @@ export function Menu({
           className={cn("absolute top-full z-40 mt-1.5 w-52 rounded-card bg-surface p-1 shadow-overlay", align === "end" ? "right-0" : "left-0")}
           style={{ animation: POP, transformOrigin: align === "end" ? "top right" : "top left" }}
         >
-          <GlideMenu className="flex flex-col gap-px" highlightClassName="inset-x-0 rounded-[6px] bg-hover-2">
-            {items.map((item, i) => {
-              if (item.type === "separator") return <div key={i} className="-mx-1 my-1 h-px bg-line" />;
-              if (item.type === "label")
-                return (
-                  <div key={i} className="px-2 pt-1.5 pb-1 text-[10.5px] font-medium tracking-[0.04em] text-ink-3 uppercase">
-                    {item.label}
-                  </div>
-                );
-              return (
-                <button
-                  key={i}
-                  data-menu-row
-                  role="menuitem"
-                  type="button"
-                  onClick={() => {
-                    item.onSelect?.();
-                    setOpen(false);
-                  }}
-                  className={cn(
-                    "relative z-10 flex h-8 w-full items-center gap-2 rounded-[6px] px-2 text-left text-[13px]",
-                    item.danger ? "text-red" : "text-ink",
-                  )}
-                >
-                  {item.icon && <span className={cn("flex shrink-0", item.danger ? "text-red" : "text-ink-3")}>{item.icon}</span>}
-                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                  {item.shortcut && <span className="text-[11.5px] text-ink-3">{item.shortcut}</span>}
-                </button>
-              );
-            })}
-          </GlideMenu>
+          <MenuList items={items} onDone={() => setOpen(false)} />
         </div>
       )}
+    </div>
+  );
+}
+
+/** Filas de menú compartidas por Menu y ContextMenu. */
+function MenuList({ items, onDone }: { items: MenuItem[]; onDone: () => void }) {
+  return (
+    <GlideMenu className="flex flex-col gap-px" highlightClassName="inset-x-0 rounded-[6px] bg-hover-2">
+      {items.map((item, i) => {
+        if (item.type === "separator") return <div key={i} className="-mx-1 my-1 h-px bg-line" />;
+        if (item.type === "label")
+          return (
+            <div key={i} className="px-2 pt-1.5 pb-1 text-[10.5px] font-medium tracking-[0.04em] text-ink-3 uppercase">
+              {item.label}
+            </div>
+          );
+        return (
+          <button
+            key={i}
+            data-menu-row
+            role="menuitem"
+            type="button"
+            onClick={() => {
+              item.onSelect?.();
+              onDone();
+            }}
+            className={cn("relative z-10 flex h-8 w-full items-center gap-2 rounded-[6px] px-2 text-left text-[13px]", item.danger ? "text-red" : "text-ink")}
+          >
+            {item.icon && <span className={cn("flex shrink-0", item.danger ? "text-red" : "text-ink-3")}>{item.icon}</span>}
+            <span className="min-w-0 flex-1 truncate">{item.label}</span>
+            {item.shortcut && <span className="text-[11.5px] text-ink-3">{item.shortcut}</span>}
+          </button>
+        );
+      })}
+    </GlideMenu>
+  );
+}
+
+/**
+ * Menú contextual (clic derecho o Mayús+F10) sobre cualquier zona. Mismo panel
+ * que Menu, posicionado en el puntero y recolocado para no salirse de la pantalla.
+ */
+export function ContextMenu({ items, children, className }: { items: MenuItem[]; children: ReactNode; className?: string }) {
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!pos) return;
+    const close = (e: Event) => {
+      if (e.type === "keydown" && (e as KeyboardEvent).key !== "Escape") return;
+      if (e.type === "pointerdown" && panel.current?.contains(e.target as Node)) return;
+      setPos(null);
+    };
+    const evs = ["pointerdown", "keydown", "scroll", "resize", "blur"];
+    evs.forEach((ev) => window.addEventListener(ev, close, true));
+    const el = panel.current;
+    if (el) {
+      const r = el.getBoundingClientRect();
+      const x = Math.min(pos.x, window.innerWidth - r.width - 8);
+      const y = Math.min(pos.y, window.innerHeight - r.height - 8);
+      if (x !== pos.x || y !== pos.y) setPos({ x, y });
+      el.querySelector<HTMLElement>("[role=menuitem]")?.focus();
+    }
+    return () => evs.forEach((ev) => window.removeEventListener(ev, close, true));
+  }, [pos]);
+  return (
+    <div
+      className={className}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setPos({ x: e.clientX, y: e.clientY });
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "F10" && e.shiftKey) {
+          e.preventDefault();
+          const r = (e.target as HTMLElement).getBoundingClientRect();
+          setPos({ x: r.left + 8, y: r.bottom + 4 });
+        }
+      }}
+    >
+      {children}
+      {pos &&
+        createPortal(
+          <div
+            ref={panel}
+            role="menu"
+            className="bui-pop fixed z-50 w-52 rounded-card bg-surface p-1 shadow-overlay"
+            style={{ left: pos.x, top: pos.y, animation: POP, transformOrigin: "top left" }}
+          >
+            <MenuList items={items} onDone={() => setPos(null)} />
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
@@ -109,7 +172,7 @@ export function Select<T extends string>({
   value,
   onChange,
   options,
-  placeholder = "Seleccionar",
+  placeholder,
   className,
 }: {
   value: T | null;
@@ -119,6 +182,7 @@ export function Select<T extends string>({
   className?: string;
 }) {
   const { open, setOpen, ref } = usePopover();
+  const L = useLabels();
   const current = options.find((o) => o.value === value);
   return (
     <div ref={ref} className={cn("relative", className)}>
@@ -130,7 +194,7 @@ export function Select<T extends string>({
         className="flex h-8 w-full items-center justify-between gap-2 rounded-control bg-surface pr-2 pl-2.5 text-[13px]
           shadow-btn transition-[background-color,box-shadow] duration-150 hover:bg-inset aria-expanded:shadow-[0_0_0_1px_var(--accent),0_0_0_4px_var(--accent-tint)]"
       >
-        <span className={cn("truncate", current ? "text-ink" : "text-ink-3")}>{current?.label ?? placeholder}</span>
+        <span className={cn("truncate", current ? "text-ink" : "text-ink-3")}>{current?.label ?? placeholder ?? L.select}</span>
         <IconChevronDown size={13} className="shrink-0 text-ink-3 transition-transform duration-200" style={{ transform: open ? "rotate(180deg)" : undefined }} />
       </button>
       {open && (

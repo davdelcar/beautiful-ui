@@ -1,152 +1,168 @@
 ---
 name: beautiful-ui
-description: Sistema de diseño Beautiful UI (React 19 + Tailwind v4, registro shadcn en davdelcar.github.io/beautiful-ui). Úsalo al crear o rediseñar interfaces web, pantallas, dashboards, formularios o apps con IA en React/Next.js cuando el usuario pida "Beautiful UI", "mi sistema de diseño", "mi UI" o "con mis componentes", o cuando el proyecto ya tenga components/beautifui/ o components/ui/index.ts de Beautiful UI. Cubre instalación, tokens, kit básico (Button, Input, Select, Card, DataTable, Dialog, Toast…) y los 20 componentes de IA (PromptBar, ThinkingState, ApprovalCard…). No lo uses en proyectos que ya usan otro sistema de diseño salvo que el usuario lo pida.
+description: Sistema de diseño Beautiful UI (React 19 + Tailwind v4, registro shadcn en davdelcar.github.io/beautiful-ui). Úsalo al crear o rediseñar interfaces web, pantallas, dashboards, formularios, gráficas o apps con IA en React/Next.js cuando el usuario pida "Beautiful UI", "mi sistema de diseño", "mi UI" o "con mis componentes", o cuando el proyecto ya tenga components/beautifui/ o components/ui/index.ts de Beautiful UI. Cubre instalación, tokens (AA), kit completo (formularios, fechas, tablas, overlays, navegación, gráficas), validación con zod, plantillas de página (login, listado, analítica, ajustes, alta, error) y los 20 componentes de IA. No lo uses en proyectos que ya usan otro sistema de diseño salvo que el usuario lo pida.
 ---
 
 # Beautiful UI
 
-Sistema de diseño para apps con IA: lienzo frío casi blanco, cards blancas con borde hairline, sombras suaves en capas, rampa de tinta neutra y color semántico usado con moderación. Tema claro/oscuro. Basado en beautifului.dev (componentes oficiales MIT © Turbo) más un kit básico propio.
+Sistema de diseño para apps: lienzo frío casi blanco, cards blancas con borde hairline, sombras suaves en capas, tinta neutra y color semántico con moderación. Claro/oscuro, 5 acentos, contraste WCAG AA verificado con axe, textos en español o inglés.
 
-- Galería: https://davdelcar.github.io/beautiful-ui/ · app de ejemplo: https://davdelcar.github.io/beautiful-ui/#/app
-- Registro shadcn: https://davdelcar.github.io/beautiful-ui/r/registry.json
-- Código: https://github.com/davdelcar/beautiful-ui
+- Galería: https://davdelcar.github.io/beautiful-ui/ · app: `#/app` · plantillas: `#/plantillas/<login|listado|analitica|ajustes|alta|error>`
+- Registro shadcn: https://davdelcar.github.io/beautiful-ui/r/registry.json (versionado: `/r/v2.0.0/<item>.json`)
+- Tokens DTCG: https://davdelcar.github.io/beautiful-ui/tokens.json · Código: https://github.com/davdelcar/beautiful-ui
 
-Si el MCP `beautiful-ui` está conectado, úsalo para la API exacta en vez de adivinar: `list_components`, `get_component` (código fuente y props), `get_design_tokens`, `get_install_instructions`, `get_example` (app completa de referencia).
+Con el MCP `beautiful-ui` conectado, no adivines la API: `list_components`, `get_component <item>` (fuente + firmas), `get_design_tokens`, `get_install_instructions`, `get_example <app|login|listado|analitica|ajustes|alta|error>`.
 
-## 1. ¿Está instalado?
+## 1. Instalar
 
-Busca `components/beautifui/foundation.css` y `components/ui/index.ts` (bajo `src/` si el proyecto lo usa). Si no están, instala:
+Comprueba si existen `components/beautifui/foundation.css` y `components/ui/index.ts` (bajo `src/` si aplica). Si no:
 
 ```bash
-npx shadcn@latest init   # solo si no hay components.json (requiere React + Tailwind v4 + alias @/)
+npx shadcn@latest init        # solo si no hay components.json (React + Tailwind v4 + alias @/)
 npx shadcn@latest add https://davdelcar.github.io/beautiful-ui/r/all.json
-# o solo lo necesario: …/r/ui-kit.json, …/r/prompt-bar.json, …/r/<item>.json
+# o por partes: ui-kit.json (kit) · form.json (zod) · login-page.json … · prompt-bar.json …
 ```
 
-Después, dos pasos a mano (no los omitas):
+Pasos a mano, siempre:
+1. **CSS global**: sustituye `@import "tailwindcss";` por `@import "<ruta>/components/beautifui/beautiful-ui.css";` (ya importa Tailwind, la fundación y `kit.css`).
+2. **Fuentes Inter + JetBrains Mono**. Vite: `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">`. Next: `Inter({ variable: "--font-inter" })`, `JetBrains_Mono({ variable: "--font-mono-face" })` en `<html className>`.
+3. **Providers en la raíz**: `<UIProvider locale="es-ES"><ToastProvider>{app}</ToastProvider></UIProvider>`.
+4. **Sin parpadeo de tema**: Next → `<html suppressHydrationWarning><head><ThemeScript /></head>`; Vite → pega `themeScript` en un `<script>` de index.html.
 
-1. **CSS global**: sustituye `@import "tailwindcss";` por `@import "<ruta relativa>/components/beautifui/beautiful-ui.css";` (ya importa Tailwind). No dejes los dos imports.
-2. **Fuentes Inter + JetBrains Mono**.
-   - Vite/HTML: `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">`
-   - Next.js: `Inter({ subsets: ["latin"], variable: "--font-inter" })` y `JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono-face" })`, con ambas `.variable` en el `className` de `<html>`.
-
-Para actualizar: repite el `add` con `--overwrite`. Si `npx shadcn` falla con ENOTEMPTY: `rm -rf ~/.npm/_npx`.
+Actualizar: el mismo `add` con `--overwrite`. Si `npx shadcn` falla con ENOTEMPTY: `rm -rf ~/.npm/_npx`.
 
 ## 2. Reglas
 
-- **Importa desde `@/components/ui`** (kit + átomos oficiales reexportados). Los componentes de IA: `import PromptBar from "@/components/primitives/PromptBar"` (export default).
-- **No edites** `components/atoms`, `components/primitives` ni `components/beautifui`: se sobrescriben al actualizar. Para personalizar, envuelve en un componente propio.
-- **Nunca colores sueltos** (`bg-white`, `text-gray-500`, `#hex`, `bg-blue-600`). Usa tokens; así el modo oscuro funciona solo.
-- **Modo oscuro** = clase `.dark` en `<html>`. Usa `useTheme()` / `<ThemeToggle />`. Evita el flash con un script inline que ponga `.dark` desde `localStorage["bui-theme"]` o `prefers-color-scheme`.
-- **`<ToastProvider>`** envolviendo la app si usas `useToast()`.
-- Con Next.js App Router, los componentes interactivos ya llevan `"use client"`; las páginas que usen hooks también lo necesitan.
+- Importa del kit: `import { … } from "@/components/ui"`; formularios: `@/components/form`; IA: `import X from "@/components/primitives/X"`; plantillas: `@/components/blocks/XPage`.
+- **No edites** `components/atoms`, `components/primitives`, `components/beautifui` (se sobrescriben). Personaliza envolviendo.
+- **Solo tokens**: nada de `bg-white`, `text-gray-500`, `#hex`, `text-[13px]`, `rounded-lg`, `shadow-md`. El modo oscuro sale solo.
+- **Accesibilidad**: `IconButton` siempre con `label`; `Checkbox`/`Switch` sin texto visible → `aria-label`; `Progress` → `label`; nada de botones dentro de botones; textos de ayuda en `text-ink-3` (ya pasa AA, no lo aclares más).
+- `IconButton`/`primitive-icon-button` fijan `display`: para ocultarlo por breakpoint, envuélvelo (`<span className="flex md:hidden">…</span>`).
+- Next App Router: los componentes ya llevan `"use client"` donde hace falta; tus páginas con hooks también.
 
-## 3. Tokens (utilidades Tailwind)
+## 3. Tokens
 
 | Rol | Clases |
 |---|---|
-| Superficies (de fondo a frente) | `bg-page` (app) · `bg-canvas` · `bg-inset` (zonas hundidas) · `bg-surface` (cards, popovers) · `bg-field` (inputs) |
-| Hover | `hover:bg-hover`, `hover:bg-hover-2` (más fuerte, sobre `surface`) |
-| Texto | `text-ink` (principal) · `text-ink-2` (secundario) · `text-ink-3` (terciario, placeholders, meta) |
-| Bordes | `border-line` · `border-line-strong` (divisores: `border-b border-line`) |
-| Acento | `bg-accent` `text-accent-ink` `bg-accent-tint` |
-| Semántico | `green` / `orange` / `red` + `-tint` (p. ej. `bg-green-tint text-green`) |
-| Sombras (incluyen el borde) | `shadow-hairline` · `shadow-btn` · `shadow-card` · `shadow-raised` · `shadow-overlay` · `shadow-inset-field` |
-| Radios | `rounded-chip` 6 · `rounded-control` 8 · `rounded-card` 10 · `rounded-window` 14 · `rounded-full` botones |
-| Tipografía | `font-sans` (Inter) · `font-mono` (cifras, IDs, código) + `tabular-nums` |
+| Superficies | `bg-page` (app) · `bg-canvas` · `bg-inset` (hundido, pies de card) · `bg-surface` (cards, popovers) · `bg-field` (inputs) |
+| Hover | `hover:bg-hover` · `hover:bg-hover-2` |
+| Texto | `text-ink` · `text-ink-2` (secundario) · `text-ink-3` (meta, placeholders) |
+| Bordes | `border-line` · `border-line-strong` |
+| Acento | `bg-accent` (con `text-white`) · `text-accent-ink` · `bg-accent-tint` |
+| Semántico | `text-green/orange/red` sobre `bg-*-tint`; rellenos con texto blanco: `bg-green-solid`, `bg-red-solid` |
+| Sombras (incluyen borde) | `shadow-hairline` · `shadow-btn` · `shadow-card` · `shadow-raised` · `shadow-overlay` |
+| Radios | `rounded-chip` 6 · `rounded-control` 8 · `rounded-card` 10 · `rounded-window` 14 · `rounded-full` |
+| Fuente | `font-sans` · `font-mono` (+ `tabular-nums` solo en columnas alineadas) |
 | Easing | `ease-out-strong` · `ease-in-out-strong` |
 
-**Escala tipográfica** (una clase = tamaño + interlineado + tracking + peso; úsala en vez de `text-[13px]`):
+**Tipografía** (una clase = tamaño + interlineado + tracking + peso): `text-display` 32 · `text-title` 22 (uno por vista) · `text-heading` 15 (card/diálogo) · `text-lead` 15 · `text-body` 13 (base) · `text-meta` 12 · `text-micro` 11 · `text-overline` 10.5 (+ `uppercase`).
 
-| Clase | Medida | Uso |
-|---|---|---|
-| `text-display` | 32 / 600 | portada, héroe |
-| `text-title` | 22 / 600 | título de página (uno por vista) |
-| `text-heading` | 15 / 600 | título de card, diálogo, sheet |
-| `text-lead` | 15 | párrafo introductorio |
-| `text-body` | 13 | texto base de la UI |
-| `text-meta` | 12 | secundario, celdas, ayudas |
-| `text-micro` | 11 | pies, contadores, atajos |
-| `text-overline` | 10.5 / 500 | etiqueta de grupo, siempre con `uppercase` |
+**Acento de marca**: `setAccent("blue" | "violet" | "green" | "orange" | "pink")`. **Tema**: `useTheme()` → `{ dark, toggle, setTheme }`, `<ThemeToggle />`.
 
-Pesos 400/500/600; nada de `font-bold` grande. Capas: `--z-dropdown` 40, `--z-overlay` 50, `--z-toast` 60.
+**Gráficas**: `--chart-1…8` (orden fijo validado para daltonismo); usa los componentes de gráficas, no pintes a mano.
 
-Utilidades de la fundación: `primitive-card-bar` (cabecera de card), `primitive-card-pad`, `primitive-card-footer`, `primitive-icon-button`, `filter-status-{todo,progress,done}`.
+Animaciones: `pop-in` (menús), `fade-up` (entradas, escalonadas), `fade-in`, `skeleton-pulse`, `shimmer-text`, `spin`. 120–300 ms con `cubic-bezier(0.23,1,0.32,1)`; el kit respeta `prefers-reduced-motion`.
 
-Animaciones (keyframes globales): `pop-in` (menús), `fade-up` (entrada de bloques, escalona con delay), `fade-in`, `shimmer-text`, `spin`, `caret-blink`. Ej.: `style={{ animation: "fade-up 500ms cubic-bezier(0.23,1,0.32,1) 60ms both" }}`. Duraciones cortas (120–300 ms); respeta `prefers-reduced-motion`.
+## 4. Kit (`@/components/ui`)
 
-## 4. Kit básico (`@/components/ui`)
+**Acciones**: `Button` (`variant` primary · secondary · ghost · accent · success · quiet; `size` xs · sm · md; un solo primary por vista) · `IconButton` (`label`, `tone`) · `ThemeToggle`.
 
-- `Button` — `variant`: `primary` (tinta, acción principal) · `secondary` (por defecto) · `ghost` · `accent` · `success` · `quiet` (barras densas); `size`: `xs` `sm` `md`. Píldora. Un solo `primary` por vista.
-- `IconButton` — `label` (obligatorio, accesible + tooltip), `tone="quiet"|"secondary"`, `tooltip={false}` para quitarlo.
-- `Input` (`leading`, `trailing` nodos; resto de props nativos, `forwardRef`), `Textarea`, `Kbd`.
-- `Field` — `label`, `hint`, `error`, hijos como función: `<Field label="Email">{(id) => <Input id={id} />}</Field>`.
-- `Checkbox` (`checked`, `onChange(bool)`, `label`, `indeterminate`), `Switch` (igual), `RadioGroup` (`value`, `onChange`, `options: {value,label,disabled?}[]`).
-- `Select` — `value | null`, `onChange`, `options: {value,label}[]`, `placeholder`.
-- `Menu` — `trigger={({open,toggle}) => …}`, `items: MenuItem[]` (`{label, icon?, shortcut?, danger?, onSelect?}` · `{type:"label", label}` · `{type:"separator"}`), `align`.
-- `Segmented` (selector compacto, `size="sm"|"md"`), `Tabs` (con contador `count`), `FilterChips` (con `dot` de color). Todos: `value`, `onChange`, `options: {value,label,count?}[]`.
-- `Tooltip` — `content`, envuelve un elemento.
-- `Popover` — panel flotante genérico: `trigger={({open,toggle}) => …}`, hijos o `(close) => …`, `align="start"|"center"|"end"`, `side`, `width` (px o `"trigger"`). Para filtros y formularios cortos.
-- `Combobox` — select con buscador (filtra sin tildes, ↑ ↓ Enter): `value`, `onChange`, `options: {value,label,hint?,icon?,keywords?,disabled?}[]`, `searchPlaceholder`, `emptyText`. Úsalo en vez de `Select` con más de ~7 opciones.
-- `Sheet` — panel lateral/inferior: `open`, `onClose`, `side="right"|"left"|"bottom"`, `title`, `description`, `footer`, `width`, `bare`. Para detalle/edición sin salir de la vista y para la navegación en móvil (`<Sheet side="left" width={224} bare><SidebarNav fill /></Sheet>`).
-- `CommandPalette` + `useHotkey` — paleta ⌘K: `open`, `onOpenChange`, `groups: {label, items: {id,label,icon?,hint?,shortcut?,keywords?,onSelect}[]}[]`. Ábrela con `useHotkey("k", () => setOpen(o => !o))`; `modKey()` da "⌘" o "Ctrl". Toda app con navegación debería tenerla.
-- `Dialog` — `open`, `onClose`, `title`, `description`, `footer`, hijos. Usa `<dialog>` nativo.
-- `const toast = useToast()` → `toast(texto, { label, onClick }?)` (acción opcional, p. ej. "Deshacer"). Requiere `<ToastProvider>`.
-- `Card` (`elevation="hairline"|"card"|"raised"`) + `CardHeader` (`title`, `icon`, `action`) + `CardBody` + `CardFooter`.
-- `Stat` (`label`, `value`, `delta`, `trend="up"|"down"|"flat"`), `Progress` (`value` 0–100, `tone`), `Spinner` (`size`).
-- `StatusPill` (`status="todo"|"progress"|"done"`), `Tag`, `Avatar` (`name`, `color`, `size="sm"|"md"|"lg"|"xl"`, `square`), `AvatarStack` (`people`, `max`).
-- `Alert` (`tone="info"|"success"|"warning"|"danger"`, `title`, `action`), `EmptyState` (`icon`, `title`, `hint`, `action`).
-- `DataTable<T>` — `columns: Column<T>[]` (`key`, `header`, `width`, `align`, `render(row)`), `rows`, `rowKey`, `isVisible`, `selected`/`onSelectedChange` (Set de keys), `toolbar`, `footer`, `minWidth`.
-- `ThemeToggle`, `useTheme()` → `{ dark, toggle, setTheme }` (estado compartido entre componentes), `setTheme(dark)` fuera de React.
-- Átomos oficiales: `EntityChip`, `Monogram`, `ValuePill`, `Shimmer`, `StreamText`, `GlideMenu`.
-- Iconos: `IconSearch IconPlus IconCheck IconX IconChevronDown IconChevronRight IconArrowRight IconMore IconInfo IconAlert IconCheckCircle IconCopy IconTrash IconPencil IconBell IconSun IconMoon IconInbox IconFilter IconLink IconSparkle IconMenu IconHome IconSettings` (prop `size`). Para más, `iconoir-react` (ya es dependencia) con `width`/`height` 16 y `strokeWidth={1.6}`.
+**Campos**: `Field` (`label`, `hint`, `error`, hijos `(id) => …`) · `Input` (`leading`, `trailing`) · `Textarea` · `Select` (≤ 7 opciones) · `Combobox` (con buscador, `hint`, `icon`, `keywords`) · `MultiSelect` (chips) · `Checkbox` · `RadioGroup` · `Switch` · `Slider` (`showValue`, `format`) · `NumberInput` (`min`, `max`, `step`, `suffix`) · `Dropzone` (`files`, `onFilesChange`, `accept`, `maxSize`) · `Kbd`.
+
+**Fechas**: `DatePicker` (`value: Date | null`, `min`, `max`) · `DateRangePicker` (`value: { from, to, preset? }`, presets Hoy/7/30/90 días/mes) · `Calendar` (`mode="single" | "range"`) · utilidades `addDays`, `addMonths`, `startOfDay`, `sameDay`.
+
+**Validación** (`@/components/form`, item `form`):
+```tsx
+const schema = z.object({ email: z.email("Email no válido"), plan: z.string().min(1, "Elige un plan") });
+const form = useZodForm(schema, { defaultValues: { email: "", plan: "" } });
+<Form form={form} onSubmit={async (v) => save(v)}>
+  <FormError />                                   {/* form.setError("root", { message }) */}
+  <FormField name="email" label="Email" required>{(f) => <Input {...f.input} />}</FormField>
+  <FormField name="plan" label="Plan">{(f) => <Select value={f.value} onChange={(v) => (f.onChange(v), f.onBlur())} options={…} />}</FormField>
+  <FormSubmit>Guardar</FormSubmit>
+</Form>
+```
+Para controles no nativos usa `f.value` / `f.onChange` y llama `f.onBlur()` al elegir. Formularios por pasos: un schema y `form.trigger([campos del paso])` antes de avanzar.
+
+**Navegación**: `Tabs` · `Segmented` · `FilterChips` · `Breadcrumb` (`items`, `max`) · `Pagination` (`page`, `total`, `onChange`, `compact`) · `Stepper` (`steps`, `current`, `onStepClick`, `orientation`) · `CommandPalette` + `useHotkey("k", …)` + `modKey()` (toda app con navegación debería tener ⌘K).
+
+**Overlays**: `Menu` (`trigger={({open,toggle}) => …}`, `items: MenuItem[]`) · `ContextMenu` (clic derecho) · `Popover` (`width`, `align`, hijos o `(close) => …`) · `Tooltip` · `Dialog` (`open`, `onClose`, `title`, `footer`) · `Sheet` (`side` right · left · bottom, `bare`) · `useToast()` → `toast(texto, { label, onClick }?)`.
+
+**Datos**: `DataTable<T>` (`columns: { key, header, width, align, render, sortValue? }[]`, `rows`, `rowKey`, `isVisible`, `selected`/`onSelectedChange`, `onRowClick`, `empty`, `toolbar`, `footer`) · `Card` + `CardHeader`/`CardBody`/`CardFooter` · `Stat` (`label`, `value`, `delta`, `trend`, `goodWhen`, `spark`) · `StatusPill` (todo · progress · done) · `Tag` · `Avatar`/`AvatarStack` · `Progress` (`label`) · `Spinner` · `Alert` (`tone`) · `EmptyState` · `Skeleton`/`SkeletonText` · `Accordion` · `Collapsible` · `Separator` (`label`) · `ScrollArea`.
+
+**Gráficas** (todas con leyenda desde 2 series, tooltip con todas las series y botón «Ver tabla»):
+- `LineChart` (`data`, `x`, `series: { key, label, color? }[]`, `area`, `endLabels`, `format`, `xFormat`, `title`, `description`, `height`) para evolución.
+- `BarChart` (igual + `stacked`) para comparar categorías o partes en el tiempo.
+- `SegmentedBar` (`parts`, `tall`) para el reparto de un todo (en lugar de donut/pie).
+- `Sparkline` (`values`) dentro de `Stat` vía `spark`.
+- Reglas: un solo eje Y (nunca doble eje); máximo 8 series (agrupa el resto en «Otros»); fija `color` por entidad para que filtrar no repinte; si el dato es un número, usa `Stat`, no una gráfica; filtros en una fila encima de todo lo que filtran (fechas primero).
+
+**Idioma**: `UIProvider` (`locale`, `labels`), `useUI()`, `useLabels()`.
 
 ## 5. Componentes de IA (`@/components/primitives/*`)
 
-Todos traen datos de demo; pásales los tuyos por props (`rows`, `questions`, `content`, `labels`, `recents`…). Revisa props exactas con `get_component <nombre>`.
+Traen datos de demo; pásales los tuyos (`rows`, `questions`, `content`, `labels`, `recents`…). Props exactas: `get_component <nombre>`.
 
 | Necesidad | Componente |
 |---|---|
-| Entrada de prompt / chat | `PromptBar` (`demo={false}` para usarlo de verdad), `ChatComposer` |
+| Entrada de prompt / chat | `PromptBar` (`demo={false}`, `onSend`), `ChatComposer` |
 | El agente piensa / trabaja | `ThinkingState`, `LoadingState`, `ToolChips`, `TaskRows` |
-| Respuesta en streaming | `StreamingText`, átomo `StreamText` |
-| Pedir confirmación / preguntas | `ApprovalCard` |
+| Respuesta en streaming | `StreamingText` (`content`, `followUps`), átomo `StreamText` |
+| Confirmación humana | `ApprovalCard` (`questions`, `onSubmitted`) |
 | Sugerencias | `RecommendationCard`, `ContextCards`, `FineTuneCard` |
-| Datos | `RecordsTable`, `FilterTable`, `DiffTable` (cambios propuestos), `InsightCards` (gráficas) |
-| Navegación | `SidebarNav` (`fill` para altura completa), `SearchList` (item `search`), `SelectionActions` |
-| Otros | `CodeBlock`, `Flowchart` |
+| Datos | `RecordsTable`, `FilterTable`, `DiffTable`, `InsightCards` |
+| Navegación | `SidebarNav` (`fill`), `SearchList` (item `search`), `SelectionActions` |
+| Otros | `CodeBlock` (`code`, `lines`, `filename`), `Flowchart` |
 
-## 6. Composición
+## 6. Plantillas (empieza por aquí para pantallas completas)
 
-Esqueleto de app (igual que la app de ejemplo, que además monta `CommandPalette` con ⌘K y un `Sheet` para el menú móvil):
+| Pantalla | Item | Incluye |
+|---|---|---|
+| Login / registro | `login-page` | zod, proveedores sociales, error de servidor |
+| Listado + detalle | `list-detail-page` | búsqueda, MultiSelect, DateRangePicker, tabla ordenable y paginada, Sheet de detalle, ContextMenu |
+| Analítica | `analytics-page` | filtros, Stat + sparkline, LineChart, BarChart apilado, SegmentedBar, tabla |
+| Ajustes | `settings-page` | subnav (Select en móvil), formulario de perfil, notificaciones, tema/acento/idioma, zona de peligro |
+| Alta por pasos | `wizard-page` | Stepper, validación por paso (`trigger`), resumen |
+| Errores | `error-page` | 404 / 403 / 500 / mantenimiento |
+
+Instala (`npx shadcn add …/r/<item>.json`), móntala en tu ruta y sustituye los datos de ejemplo y los `onSubmit`.
+
+## 7. Composición
 
 ```tsx
 <div className="flex h-screen overflow-hidden bg-page">
-  <SidebarNav fill recents={…} activeNav={nav} onNavigate={setNav} className="border-r border-line" />
+  <div className="hidden md:flex"><SidebarNav fill … className="border-r border-line" /></div>
+  <Sheet open={menu} onClose={…} side="left" width={224} bare><SidebarNav fill … /></Sheet>
   <div className="flex min-w-0 flex-1 flex-col">
-    <header className="flex h-13 shrink-0 items-center gap-2 border-b border-line bg-page pr-3 pl-4">…</header>
+    <header className="flex h-13 shrink-0 items-center gap-2 border-b border-line bg-page pr-3 pl-4">
+      <span className="flex md:hidden"><IconButton label="Menú" onClick={…}><IconMenu /></IconButton></span>
+      <Breadcrumb items={…} />
+      {/* buscador que abre CommandPalette, ThemeToggle… */}
+    </header>
     <main className="flex-1 overflow-y-auto">
       <div className="mx-auto flex max-w-[1080px] flex-col gap-4 p-4 sm:p-6">
         <h1 className="text-title text-ink">…</h1>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{/* <Stat/> en Cards */}</div>
-        <Card><CardHeader title="…" action={<Button size="xs">…</Button>} /><CardBody>…</CardBody></Card>
+        <div className="flex flex-wrap items-center gap-2">{/* filtros */}</div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{/* <Stat/> */}</div>
+        <Card>…</Card>
       </div>
     </main>
   </div>
+  <CommandPalette open={…} onOpenChange={…} groups={…} />
 </div>
 ```
 
-- Fondo `bg-page`; contenido en `Card` (`bg-surface` + `shadow-card`). No anides cards con sombra: dentro de una card usa `bg-inset` o divisores `border-line`.
-- Espaciado denso: `gap-3`/`gap-4` entre bloques, `px-3 py-2.5` dentro. Rejillas con `minmax(0,1fr)`.
-- Color como condimento: neutros por defecto; acento solo en foco/selección/acción clave; semánticos solo para estado.
-- `IconButton` y `primitive-icon-button` fijan `display`: para ocultarlo por breakpoint envuélvelo (`<span className="flex md:hidden"><IconButton …/></span>`).
-- Responsive: sidebar visible desde `md`; en móvil, botón `IconMenu` que abre un `Sheet` con la `SidebarNav`.
-- Accesibilidad: `IconButton` siempre con `label`; foco visible ya lo da la fundación; `aria-label` en navs.
+- Contenido en `Card`; dentro de una card usa `bg-inset` o divisores `border-line`, no cards con sombra anidadas.
+- Espaciado denso: `gap-3`/`gap-4` entre bloques; rejillas con `minmax(0,1fr)`.
+- Color como condimento: acento solo en foco, selección y la acción clave; semánticos solo para estado.
+- Carga: `Skeleton` con el tamaño final; al refrescar datos, mantén lo anterior con opacidad (sin parpadeo). Vacío: `EmptyState` con acción.
+- Breakpoints de Tailwind: `sm` 640 · `md` 768 (sidebar) · `lg` 1024 · `xl` 1280 (paneles laterales).
 
-## 7. Antes de terminar
+## 8. Antes de terminar
 
-- [ ] Ningún color/sombra/radio/tamaño de texto fuera de los tokens; probado en claro y oscuro.
-- [ ] Funciona a 390px de ancho (navegación en `Sheet`, sin scroll horizontal).
-- [ ] CSS global importa `beautiful-ui.css` (y no `tailwindcss` además) y las fuentes cargan.
-- [ ] Nada editado dentro de `atoms/`, `primitives/` o `beautifui/`.
-- [ ] El proyecto compila (`tsc`/`build`).
+- [ ] Solo tokens (color, texto, sombra, radio); probado en claro y oscuro.
+- [ ] CSS global importa `beautiful-ui.css` (y no `tailwindcss` además); fuentes y providers montados.
+- [ ] Funciona a 390px: navegación en `Sheet`, sin scroll horizontal.
+- [ ] Teclado: todo alcanzable con Tab, foco visible, Escape cierra overlays, ⌘K si hay navegación.
+- [ ] Formularios con zod y mensajes en el idioma del usuario.
+- [ ] Nada editado en `atoms/`, `primitives/` ni `beautifui/`; compila (`tsc`/`build`).

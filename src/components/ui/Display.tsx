@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Monogram } from "@/components/atoms/EntityChip";
 import { cn } from "@/lib/utils";
+import { Sparkline } from "./Charts";
 import { IconAlert, IconCheckCircle, IconInfo } from "./icons";
 
 /* ── Card ──────────────────────────────────────────────────
@@ -104,7 +105,11 @@ export function Avatar({
     .join("")
     .toUpperCase();
   return (
-    <Monogram color={color} className={cn(AVATAR_SIZE[size], square && "rounded-[6px]!", className)}>
+    /* el fondo se oscurece un poco para que las iniciales blancas pasen AA con cualquier color */
+    <Monogram
+      color={color.startsWith("var(") ? color : `color-mix(in oklab, ${color} 74%, black)`}
+      className={cn(AVATAR_SIZE[size], square && "rounded-[6px]!", className)}
+    >
       {initials}
     </Monogram>
   );
@@ -171,9 +176,20 @@ export function EmptyState({ icon, title, hint, action }: { icon: ReactNode; tit
 
 /* ── Progress / Meter / Spinner ────────────────────────── */
 
-export function Progress({ value, tone = "accent", className }: { value: number; tone?: "accent" | "green" | "orange" | "red"; className?: string }) {
+export function Progress({
+  value,
+  tone = "accent",
+  label = "Progreso",
+  className,
+}: {
+  value: number;
+  tone?: "accent" | "green" | "orange" | "red";
+  /** nombre accesible de la barra */
+  label?: string;
+  className?: string;
+}) {
   return (
-    <div role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100} className={cn("h-1 overflow-hidden rounded-full bg-hover-2", className)}>
+    <div role="progressbar" aria-label={label} aria-valuenow={value} aria-valuemin={0} aria-valuemax={100} className={cn("h-1 overflow-hidden rounded-full bg-hover-2", className)}>
       <div
         className={cn("h-full rounded-full", { accent: "bg-accent", green: "bg-green", orange: "bg-orange", red: "bg-red" }[tone])}
         style={{ width: `${Math.max(0, Math.min(100, value))}%`, transition: "width 500ms cubic-bezier(0.23,1,0.32,1)" }}
@@ -195,16 +211,36 @@ export function Spinner({ size = 14, className }: { size?: number; className?: s
 
 /* ── Stat ──────────────────────────────────────────────── */
 
-export function Stat({ label, value, delta, trend }: { label: ReactNode; value: ReactNode; delta?: ReactNode; trend?: "up" | "down" | "flat" }) {
+export function Stat({
+  label,
+  value,
+  delta,
+  trend,
+  goodWhen = "up",
+  spark,
+}: {
+  label: ReactNode;
+  value: ReactNode;
+  /** variación firmada frente a un periodo con nombre: "+12% vs. mes pasado" */
+  delta?: ReactNode;
+  trend?: "up" | "down" | "flat";
+  /** si subir es bueno (ingresos) o malo (costes, errores): decide verde/rojo */
+  goodWhen?: "up" | "down";
+  /** últimos valores para una sparkline */
+  spark?: number[];
+}) {
+  const good = trend === "flat" || !trend ? null : trend === goodWhen;
   return (
     <Card className="primitive-card-pad flex flex-col gap-1">
-      <span className="text-[12px] text-ink-3">{label}</span>
-      <span className="text-[22px] leading-tight font-semibold tracking-[-0.02em] tabular-nums text-ink">{value}</span>
+      <span className="text-meta text-ink-3">{label}</span>
+      <span className="text-[22px] leading-tight font-semibold tracking-[-0.02em] text-ink">{value}</span>
       {delta && (
-        <span className={cn("font-mono text-[11px] tabular-nums", trend === "up" ? "text-green" : trend === "down" ? "text-red" : "text-ink-3")}>
+        <span className={cn("font-mono text-[11px] tabular-nums", good === null ? "text-ink-3" : good ? "text-green" : "text-red")}>
+          {trend === "up" ? "▲ " : trend === "down" ? "▼ " : ""}
           {delta}
         </span>
       )}
+      {spark && spark.length > 1 && <Sparkline values={spark} className="mt-1" />}
     </Card>
   );
 }

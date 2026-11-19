@@ -2,6 +2,7 @@ import { useSyncExternalStore, type ButtonHTMLAttributes, type ReactNode } from 
 import { cn } from "@/lib/utils";
 import { Tooltip } from "./Overlay";
 import { IconMoon, IconSun } from "./icons";
+import { useLabels } from "./i18n";
 
 /** Botón de icono — la clase compartida `primitive-icon-button` (28px) de la
  *  fundación, con las variantes de tono de los primitives. */
@@ -58,6 +59,32 @@ export function setTheme(dark: boolean) {
   requestAnimationFrame(() => root.classList.remove("theme-switching"));
 }
 
+export const ACCENTS = ["blue", "violet", "green", "orange", "pink"] as const;
+export type Accent = (typeof ACCENTS)[number];
+
+/** Cambia el color de acento de toda la app (`data-accent` en <html>) y lo recuerda. */
+export function setAccent(accent: Accent) {
+  const root = document.documentElement;
+  if (accent === "blue") delete root.dataset.accent;
+  else root.dataset.accent = accent;
+  try {
+    localStorage.setItem("bui-accent", accent);
+  } catch {
+    /* sin almacenamiento */
+  }
+}
+
+/**
+ * Script para el <head> que aplica tema y acento guardados ANTES de pintar
+ * (evita el parpadeo). Next.js: `<head><ThemeScript /></head>` en el layout raíz
+ * y `suppressHydrationWarning` en <html>. Vite: pega `themeScript` en index.html.
+ */
+export const themeScript = `(function(){try{var d=document.documentElement,t=localStorage.getItem("bui-theme"),a=localStorage.getItem("bui-accent");if(t==="dark"||(!t&&matchMedia("(prefers-color-scheme: dark)").matches))d.classList.add("dark");if(a&&a!=="blue")d.dataset.accent=a}catch(e){}})()`;
+
+export function ThemeScript() {
+  return <script dangerouslySetInnerHTML={{ __html: themeScript }} />;
+}
+
 /** Tema compartido: todos los componentes que lo usan ven el mismo valor (la clase `.dark` de <html>). */
 export function useTheme() {
   const dark = useSyncExternalStore(subscribeTheme, isDark, () => false);
@@ -66,8 +93,9 @@ export function useTheme() {
 
 export function ThemeToggle({ tone }: { tone?: "quiet" | "secondary" }) {
   const { dark, toggle } = useTheme();
+  const L = useLabels();
   return (
-    <IconButton label={dark ? "Tema claro" : "Tema oscuro"} tone={tone} onClick={toggle}>
+    <IconButton label={dark ? L.themeLight : L.themeDark} tone={tone} onClick={toggle}>
       {dark ? <IconSun size={16} /> : <IconMoon size={16} />}
     </IconButton>
   );

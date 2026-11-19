@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
-import { DOCS, primitiveDoc, type Doc } from "./docs";
+import { DataViz, MoreFoundations, MoreKit, Templates } from "./GalleryMore";
+import { Group, Showcase } from "./Showcase";
 import { Button } from "@/components/atoms/Button";
 import { EntityChip } from "@/components/atoms/EntityChip";
 import { Shimmer } from "@/components/atoms/Shimmer";
@@ -79,91 +80,6 @@ import {
   type Column,
   type Status,
 } from "@/components/ui";
-
-/* ── marco de cada sección (copiado del showcase de beautifului.dev) ── */
-
-function Showcase({
-  id,
-  title,
-  desc,
-  children,
-  controls,
-  bare = false,
-}: {
-  id: string;
-  title: string;
-  desc: string;
-  children: ReactNode;
-  controls?: ReactNode;
-  /** sin superficie canvas (para demos que ya traen la suya) */
-  bare?: boolean;
-}) {
-  const doc = DOCS[id] ?? primitiveDoc(id);
-  const [showDoc, setShowDoc] = useState(false);
-  return (
-    <section id={id} className="primitive-showcase group flex [counter-increment:showcase] w-full scroll-mt-8 flex-col border-b border-dashed border-line px-5 py-8 sm:px-8 sm:py-10">
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-2 sm:items-baseline">
-          <span aria-hidden className="mt-0.5 font-mono text-[11px] text-ink-3 tabular-nums before:content-[counter(showcase,decimal-leading-zero)] sm:mt-0" />
-          <div className="min-w-0 sm:flex sm:items-baseline sm:gap-2">
-            <h2 className="text-[13px] font-semibold whitespace-nowrap text-ink">{title}</h2>
-            <p className="mt-0.5 text-[12.5px] text-pretty text-ink-3 sm:mt-0">{desc}</p>
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          {controls}
-          {doc && (
-            <Button size="xs" variant={showDoc ? "ghost" : "quiet"} aria-expanded={showDoc} onClick={() => setShowDoc((v) => !v)}>
-              <span className="font-mono text-[11px]">&lt;/&gt;</span> Código
-            </Button>
-          )}
-        </div>
-      </div>
-      {bare ? (
-        children
-      ) : (
-        <div className="primitive-demo-surface relative flex min-h-40 items-center justify-center overflow-hidden rounded-window bg-canvas p-3 shadow-hairline sm:p-6">
-          <div className="w-full">{children}</div>
-        </div>
-      )}
-      {doc && showDoc && <DocPanel doc={doc} />}
-    </section>
-  );
-}
-
-/** Ejemplo copiable (CodeBlock oficial) + tabla de props. */
-function DocPanel({ doc }: { doc: Doc }) {
-  return (
-    <div className="mt-3 grid items-start gap-3 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]" style={{ animation: "fade-up 300ms cubic-bezier(0.23,1,0.32,1) both" }}>
-      <CodeBlock filename={doc.file ?? "Ejemplo.tsx"} code={doc.code} lines={doc.code.split("\n")} />
-      {doc.props && (
-        <Card className="overflow-hidden">
-          <div className="primitive-card-bar border-b border-line text-overline text-ink-3 uppercase">Props</div>
-          <dl className="divide-y divide-line">
-            {doc.props.map((p) => (
-              <div key={p.name} className="flex flex-col gap-0.5 px-3.5 py-2">
-                <dt className="flex flex-wrap items-baseline gap-x-2 font-mono text-micro">
-                  <span className="font-medium text-ink">{p.name}</span>
-                  <span className="text-accent-ink">{p.type}</span>
-                  {p.def && <span className="text-ink-3">= {p.def}</span>}
-                </dt>
-                {p.desc && <dd className="text-meta text-ink-2">{p.desc}</dd>}
-              </div>
-            ))}
-          </dl>
-        </Card>
-      )}
-    </div>
-  );
-}
-
-function Group({ id, title }: { id: string; title: string }) {
-  return (
-    <div id={id} className="scroll-mt-4 border-b border-dashed border-line px-5 pt-10 pb-2 sm:px-8">
-      <h2 className="text-[10.5px] font-medium tracking-[0.06em] text-ink-3 uppercase">{title}</h2>
-    </div>
-  );
-}
 
 /** Variantes con el Segmented del kit; `key` remonta el primitive al cambiar. */
 function useVariants<T extends string>({ options, render }: { options: T[]; render: (v: T) => ReactNode }) {
@@ -577,7 +493,7 @@ function Kit() {
                 </Button>
                 <Button
                   size="sm"
-                  className="bg-red text-white hover:brightness-95"
+                  className="bg-red-solid text-white hover:brightness-110"
                   onClick={() => {
                     setDialog(false);
                     toast("Proyecto eliminado");
@@ -871,14 +787,16 @@ function Primitives() {
 }
 
 export const NAV = [
-  { group: "Fundamentos", items: [["color", "Color"], ["tipografia", "Tipografía"], ["forma", "Radios y sombras"]] },
+  { group: "Fundamentos", items: [["color", "Color"], ["tipografia", "Tipografía"], ["forma", "Radios y sombras"], ["acento", "Acento de marca"], ["iconos", "Iconos"], ["idioma", "Idioma"]] },
   { group: "Átomos", items: [["button", "Button"], ["pills", "ValuePill · EntityChip"], ["shimmer", "Shimmer · StreamText"]] },
   {
     group: "Elementos básicos",
-    items: [["campos", "Campos"], ["seleccion", "Selección"], ["navegacion", "Segmented · Tabs"], ["estados", "Estado · Avatar"], ["cards", "Cards"], ["feedback", "Alert · Empty"], ["overlays", "Overlays"], ["popover", "Popover · Combobox"], ["sheet", "Sheet"], ["comandos", "Command palette"], ["datatable", "DataTable"]],
+    items: [["campos", "Campos"], ["seleccion", "Selección"], ["navegacion", "Segmented · Tabs"], ["estados", "Estado · Avatar"], ["cards", "Cards"], ["feedback", "Alert · Empty"], ["overlays", "Overlays"], ["popover", "Popover · Combobox"], ["sheet", "Sheet"], ["comandos", "Command palette"], ["datatable", "DataTable"], ["navegacion-2", "Breadcrumb · Pagination"], ["menu-contextual", "Menú contextual"], ["estructura", "Accordion · Skeleton"], ["entradas", "Slider · MultiSelect"], ["fechas", "Fechas"], ["validacion", "Formularios"]],
   },
+  { group: "Datos", items: [["lineas", "LineChart"], ["barras", "BarChart"], ["cuota", "Stat · SegmentedBar"]] },
+  { group: "Plantillas", items: [["plantillas", "Páginas completas"]] },
   {
-    group: "Componentes",
+    group: "Componentes de IA",
     items: [
       ["loading-state", "Loading State"], ["thinking-state", "Thinking"], ["streaming-text", "Streaming Text"], ["approval-card", "Approval Card"],
       ["tool-chips", "Tool Chips"], ["task-rows", "Task Rows"], ["chat", "Chat"], ["prompt-bar", "Prompt Bar"], ["recommendation-card", "Recommendation"],
@@ -909,8 +827,8 @@ export default function DesignSystem() {
           <p className="text-[10.5px] font-medium tracking-[0.06em] text-ink-3 uppercase">Sistema de diseño</p>
           <h1 className="mt-2 text-[32px] leading-[1.1] font-semibold tracking-[-0.03em] text-ink">Beautiful UI</h1>
           <p className="mt-3 max-w-140 text-[15px] text-ink-2">
-            Los componentes oficiales de beautifului.dev (sincronizados desde su registro) más un kit de elementos básicos construido sobre sus
-            átomos y su fundación, para montar una app completa con el mismo lenguaje.
+            Los componentes oficiales de beautifului.dev más todo lo necesario para construir cualquier app: formularios con validación,
+            fechas, tablas, overlays, navegación, gráficas y plantillas de página. Contraste AA, claro/oscuro, acentos de marca y español/inglés.
           </p>
           <div className="mt-5 flex gap-2">
             <a href="#/app">
@@ -918,17 +836,26 @@ export default function DesignSystem() {
                 Ver app de ejemplo
               </Button>
             </a>
+            <a href="#plantillas">
+              <Button size="sm">Plantillas</Button>
+            </a>
             <a href="#campos">
-              <Button size="sm">Elementos básicos</Button>
+              <Button size="sm" variant="quiet">Elementos básicos</Button>
             </a>
           </div>
         </header>
         <Group id="g-fundamentos" title="Fundamentos" />
         <Foundations />
+        <MoreFoundations />
         <Group id="g-atomos" title="Átomos oficiales" />
         <Atoms />
         <Group id="g-kit" title="Elementos básicos" />
         <Kit />
+        <MoreKit />
+        <Group id="g-datos" title="Datos y gráficas" />
+        <DataViz />
+        <Group id="g-plantillas" title="Plantillas" />
+        <Templates />
         <Group id="g-primitives" title="Componentes oficiales" />
         <Primitives />
         <footer className="flex items-center justify-between px-5 py-8 text-[12px] text-ink-3 sm:px-8">

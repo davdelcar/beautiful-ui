@@ -317,4 +317,202 @@ const columns: Column<Order>[] = [
       P("toolbar / footer / minWidth", "ReactNode / ReactNode / number", "minWidth activa scroll horizontal."),
     ],
   },
+  acento: {
+    file: "tema.tsx",
+    code: `import { setAccent, setTheme, useTheme, ThemeScript } from "@/components/ui";
+
+setAccent("violet");          // blue | violet | green | orange | pink
+const { dark, toggle } = useTheme();
+
+// Next.js (app/layout.tsx): sin parpadeo al cargar
+<html lang="es" suppressHydrationWarning>
+  <head><ThemeScript /></head>
+  …
+</html>`,
+    props: [
+      P("setAccent", "(accent: Accent) => void", "Pone data-accent en <html> y lo guarda (bui-accent)."),
+      P("setTheme", "(dark: boolean) => void", "Clase .dark + localStorage (bui-theme), sin transiciones durante el cambio."),
+      P("useTheme", "() => { dark, toggle, setTheme }", "Estado compartido entre todos los componentes."),
+      P("ThemeScript / themeScript", "componente / string", "Script del <head> que aplica tema y acento antes de pintar."),
+    ],
+  },
+
+  idioma: {
+    file: "providers.tsx",
+    code: `import { UIProvider, ToastProvider } from "@/components/ui";
+
+<UIProvider locale="en-US" labels={{ noResults: "Nothing here" }}>
+  <ToastProvider>
+    <App />
+  </ToastProvider>
+</UIProvider>
+
+const { locale, labels } = useUI();`,
+    props: [
+      P("locale", "string", "BCP 47. es-* → textos en español; en-* → inglés. Fechas y números con Intl.", '"es-ES"'),
+      P("labels", "Partial<Labels>", "Sobrescribe cualquier texto (o traduce a otro idioma)."),
+      P("useUI / useLabels", "() => { locale, labels } / Labels", "Para tus propios componentes."),
+    ],
+  },
+
+  "navegacion-2": {
+    file: "Navegacion.tsx",
+    code: `import { Breadcrumb, Pagination, Stepper } from "@/components/ui";
+
+<Breadcrumb items={[{ label: "Ventas", href: "/ventas" }, { label: "Pedido #1042" }]} />
+
+<Pagination page={page} total={12} onChange={setPage} />
+
+<Stepper current={step} onStepClick={setStep}
+  steps={[{ label: "Cuenta" }, { label: "Equipo", description: "Opcional" }, { label: "Pago" }]} />`,
+    props: [
+      P("Breadcrumb.items", "{ label; href?; onClick? }[]", "El último es la página actual (aria-current)."),
+      P("Breadcrumb.max", "number", "Colapsa el centro con «…».", "4"),
+      P("Pagination", "{ page; total; onChange; compact? }", "1-based. compact = «Página X de Y»."),
+      P("Stepper", "{ steps; current; onStepClick?; orientation? }", "current 0-based; solo se puede volver a pasos hechos."),
+    ],
+  },
+
+  "menu-contextual": {
+    file: "ContextMenu.tsx",
+    code: `import { ContextMenu } from "@/components/ui";
+
+<ContextMenu items={[
+  { label: "Renombrar", shortcut: "F2", onSelect: rename },
+  { type: "separator" },
+  { label: "Eliminar", danger: true, onSelect: remove },
+]}>
+  <FileRow />
+</ContextMenu>`,
+    props: [
+      P("items", "MenuItem[]", "Mismo formato que Menu."),
+      P("children", "ReactNode", "Zona sensible al clic derecho y a Mayús+F10."),
+    ],
+  },
+
+  estructura: {
+    file: "Estructura.tsx",
+    code: `import { Accordion, Collapsible, Separator, Skeleton, SkeletonText, ScrollArea } from "@/components/ui";
+
+<Accordion defaultOpen={["a"]} items={[
+  { value: "a", title: "¿Puedo cambiar de plan?", meta: "Facturación", content: "Sí…" },
+]} />
+
+{loading ? <SkeletonText lines={3} /> : <Contenido />}
+<Skeleton circle className="size-8" />
+<Separator label="o continúa con" />
+<ScrollArea maxHeight={240} fade>…</ScrollArea>`,
+    props: [
+      P("Accordion", "{ items; multiple?; defaultOpen? }", "items: { value, title, content, meta? }."),
+      P("Collapsible", "{ title; children; defaultOpen? }", "Sección plegable suelta; Collapse para tu propio disparador."),
+      P("Skeleton", "{ className; circle? }", "Dale el tamaño final: sin saltos al cargar."),
+      P("Separator", '{ orientation?; label? }', "Hairline line; con label, texto centrado."),
+      P("ScrollArea", "{ maxHeight?; fade? }", "Barra fina del sistema; fade difumina los bordes."),
+    ],
+  },
+
+  entradas: {
+    file: "Entradas.tsx",
+    code: `import { Slider, NumberInput, MultiSelect, Dropzone } from "@/components/ui";
+
+<Slider value={vol} onChange={setVol} min={0} max={100} showValue format={(v) => v + " %"} />
+<NumberInput value={qty} onChange={setQty} min={0} max={99} suffix="uds" />
+<MultiSelect value={mods} onChange={setMods}
+  options={[{ value: "crm", label: "CRM" }, { value: "ai", label: "Asistente IA" }]} />
+<Dropzone files={files} onFilesChange={setFiles} accept="image/*" maxSize={5e6} hint="Hasta 5 MB" />`,
+    props: [
+      P("Slider", "{ value; onChange; min; max; step; showValue?; format? }", "input range nativo: teclado y lector gratis."),
+      P("NumberInput", "{ value: number | null; onChange; min?; max?; step?; suffix? }", "↑ ↓ (Mayús ×10); valida al salir."),
+      P("MultiSelect", "{ value: T[]; onChange; options; maxChips? }", "Retroceso en el buscador quita el último."),
+      P("Dropzone", "{ files; onFilesChange; accept?; multiple?; maxSize? }", "Controlado; rechaza y avisa de archivos grandes."),
+    ],
+  },
+
+  fechas: {
+    file: "Fechas.tsx",
+    code: `import { Calendar, DatePicker, DateRangePicker, type DateRange } from "@/components/ui";
+
+<DatePicker value={date} onChange={setDate} min={new Date()} />
+
+const [range, setRange] = useState<DateRange & { preset?: string }>({ from: null, to: null, preset: "30d" });
+<DateRangePicker value={range} onChange={setRange} />
+
+<Calendar mode="range" value={range} onChange={setRange} />`,
+    props: [
+      P("Calendar", '{ mode?: "single" | "range"; value; onChange; min?; max? }', "Flechas día/semana, RePág/AvPág mes, Inicio/Fin."),
+      P("DatePicker", "{ value: Date | null; onChange; min?; max?; placeholder? }", "Hoy / Limpiar en el pie."),
+      P("DateRangePicker", "{ value: DateRange & { preset? }; onChange; presets? }", "Presets primero; rango personalizado detrás."),
+      P("utilidades", "addDays, addMonths, startOfDay, sameDay", "Sin dependencias."),
+    ],
+  },
+
+  validacion: {
+    file: "Registro.tsx",
+    code: `// npx shadcn@latest add ${REGISTRY}/form.json  (react-hook-form + zod)
+import { z } from "zod";
+import { Form, FormField, FormSubmit, FormError, useZodForm } from "@/components/form";
+
+const schema = z.object({ email: z.email("Email no válido"), plan: z.string().min(1) });
+const form = useZodForm(schema, { defaultValues: { email: "", plan: "" } });
+
+<Form form={form} onSubmit={async (v) => { await save(v); }}>
+  <FormError />
+  <FormField name="email" label="Email" required>{(f) => <Input {...f.input} />}</FormField>
+  <FormField name="plan" label="Plan">
+    {(f) => <Select value={f.value} onChange={(v) => (f.onChange(v), f.onBlur())} options={…} />}
+  </FormField>
+  <FormSubmit>Guardar</FormSubmit>
+</Form>`,
+    props: [
+      P("useZodForm", "(schema, options?)", "useForm + zodResolver, valida al salir del campo."),
+      P("FormField.children", "(f) => ReactNode", "f.input para Input/Textarea; f.value/f.onChange para el resto."),
+      P("FormSubmit", "{ variant?; size? }", "Spinner y deshabilitado mientras envía."),
+      P("FormError", "—", 'Muestra form.setError("root", { message }).'),
+    ],
+  },
+
+  lineas: {
+    file: "Ventas.tsx",
+    code: `import { LineChart, type Series } from "@/components/ui";
+
+const series: Series[] = [
+  { key: "web", label: "Web", color: 1 },      // color fijo por entidad
+  { key: "tienda", label: "Tienda", color: 2 },
+];
+
+<LineChart title="Unidades vendidas" data={rows} x="mes" series={series}
+  area endLabels height={240} format={(v) => v.toLocaleString("es-ES")} />`,
+    props: [
+      P("data / x", "Record<string, unknown>[] / string", "Una fila por X; una columna por serie."),
+      P("series", "{ key; label; color? }[]", "color 1–8 fija la tinta: filtrar no repinta. Máx. 8; agrupa el resto en «Otros»."),
+      P("area / endLabels", "boolean", "Velo del 10 %; valor al final de cada serie (≤ 4)."),
+      P("format / xFormat", "(v) => string", "Números del eje y tooltip; etiquetas de X."),
+      P("title / description / actions", "ReactNode", "Cabecera con conmutador de vista de tabla."),
+    ],
+  },
+
+  barras: {
+    file: "Trimestres.tsx",
+    code: `import { BarChart } from "@/components/ui";
+
+<BarChart title="Ventas por trimestre" data={rows} x="t" series={series} stacked />`,
+    props: [
+      P("stacked", "boolean", "Apiladas con 2px de aire; tooltip con total."),
+      P("…", "igual que LineChart", "Un único eje Y siempre: nunca dos escalas."),
+    ],
+  },
+
+  cuota: {
+    file: "KPIs.tsx",
+    code: `import { Stat, Sparkline, SegmentedBar } from "@/components/ui";
+
+<Stat label="Errores de pago" value="0,8 %" delta="−0,3 pts" trend="down" goodWhen="down" spark={last12} />
+
+<SegmentedBar tall parts={[{ label: "Web", value: 4200 }, { label: "Tienda", value: 2600 }]} />`,
+    props: [
+      P("Stat.trend / goodWhen", '"up" | "down" | "flat" / "up" | "down"', "Verde si va en la dirección buena; flecha además del color."),
+      P("Stat.spark", "number[]", "Sparkline de los últimos valores."),
+      P("SegmentedBar", "{ parts; tall?; format? }", "Un todo en ≤ 6 partes; tall imprime la cuota si cabe. Mejor que un donut."),
+    ],
+  },
 };

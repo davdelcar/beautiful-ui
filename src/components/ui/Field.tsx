@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 /* Campos de texto: pozo `bg-field` con borde `line` (igual que el composer de
  * ChatComposer); al enfocar se eleva a `surface` con anillo de acento. */
-const fieldBase = `w-full min-w-0 rounded-control border border-line bg-field text-[13px] text-ink
+export const fieldBase = `w-full min-w-0 rounded-control border border-line bg-field text-[13px] text-ink
   shadow-[0_1px_2px_rgba(0,0,0,0.035)] outline-none placeholder:text-ink-3
   transition-[border-color,box-shadow,background-color] duration-150
   hover:border-line-strong
