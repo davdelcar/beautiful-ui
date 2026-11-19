@@ -100,6 +100,7 @@ const ENTRY_CSS = `/* Beautiful UI — punto de entrada de estilos.
 @import "./foundation.css";
 @import "./records-table.css";
 @import "./sidebar-nav.css";
+@import "./kit.css";
 
 /* Fuentes: carga Inter y JetBrains Mono (Google Fonts o next/font). Con
  * next/font usa variable: "--font-inter" y "--font-mono-face"; :where() deja
@@ -118,12 +119,13 @@ await addItem({
   name: "foundation",
   type: "registry:style",
   title: "Foundation",
-  description: "Tokens (claro/oscuro), @theme de Tailwind v4, keyframes y estilos de RecordsTable y SidebarNav. " + ATTRIBUTION,
+  description: "Tokens (claro/oscuro), @theme de Tailwind v4, keyframes, escala tipográfica (text-display…text-overline) y estilos de RecordsTable y SidebarNav. " + ATTRIBUTION,
   extraDeps: ["shadow-plugin"],
   files: [
     { from: "app/beautifui/foundation.css", to: "components/beautifui/foundation.css", type: "registry:file" },
     { from: "app/beautifui/records-table.css", to: "components/beautifui/records-table.css", type: "registry:file" },
     { from: "app/beautifui/sidebar-nav.css", to: "components/beautifui/sidebar-nav.css", type: "registry:file" },
+    { from: "styles/kit.css", to: "components/beautifui/kit.css", type: "registry:file" },
     { content: ENTRY_CSS, to: "components/beautifui/beautiful-ui.css", type: "registry:file" },
   ],
 });
@@ -166,7 +168,7 @@ await addItem({
   type: "registry:ui",
   title: "Elementos básicos",
   description:
-    "Input, Select, Checkbox, Switch, Segmented, Tabs, Card, StatusPill, Avatar, Alert, Menu, Tooltip, Dialog, Toast, DataTable… sobre los átomos oficiales.",
+    "Input, Select, Combobox, Checkbox, Switch, Segmented, Tabs, Card, StatusPill, Avatar, Alert, Menu, Popover, Tooltip, Dialog, Sheet, CommandPalette (⌘K), Toast, DataTable… sobre los átomos oficiales.",
   extraRegistryDeps: ["foundation"],
   files: kitFiles.map((f) => ({ from: `components/ui/${f}`, to: `components/ui/${f}` })),
 });

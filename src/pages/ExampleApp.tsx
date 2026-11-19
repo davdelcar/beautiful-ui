@@ -11,6 +11,15 @@ import TaskRows, { type TaskRow } from "@/components/primitives/TaskRows";
 import ThinkingState from "@/components/primitives/ThinkingState";
 import {
   Avatar,
+  CommandPalette,
+  IconHome,
+  IconMenu,
+  IconMoon,
+  IconSettings,
+  Sheet,
+  modKey,
+  useHotkey,
+  useTheme,
   Button,
   Card,
   CardHeader,
@@ -332,34 +341,66 @@ export default function ExampleApp() {
   const [nav, setNav] = useState("home");
   const [chat, setChat] = useState<string | null>(null);
   const [assistant, setAssistant] = useState(true);
+  const [mobileNav, setMobileNav] = useState(false);
+  const [palette, setPalette] = useState(false);
+  const toast = useToast();
+  const theme = useTheme();
+  useHotkey("k", () => setPalette((o) => !o));
+
+  const sidebar = (mobile: boolean) => (
+    <SidebarNav
+      fill
+      recents={RECENTS}
+      activeNav={nav}
+      onNavigate={(k) => {
+        setNav(k);
+        setChat(null);
+        if (mobile) setMobileNav(false);
+      }}
+      activeTitle={chat}
+      onPick={(_, label) => {
+        setChat(label);
+        if (mobile) setMobileNav(false);
+      }}
+      onNewChat={() => setAssistant(true)}
+      footerLabel="Mejorar plan"
+      className={mobile ? undefined : "border-r border-line"}
+    />
+  );
 
   return (
     <div className="flex h-screen overflow-hidden bg-page">
-      <div className="hidden md:flex">
-        <SidebarNav
-          fill
-          recents={RECENTS}
-          activeNav={nav}
-          onNavigate={(k) => {
-            setNav(k);
-            setChat(null);
-          }}
-          activeTitle={chat}
-          onPick={(_, label) => setChat(label)}
-          onNewChat={() => setAssistant(true)}
-          footerLabel="Mejorar plan"
-          className="border-r border-line"
-        />
-      </div>
+      <div className="hidden md:flex">{sidebar(false)}</div>
+      <Sheet open={mobileNav} onClose={() => setMobileNav(false)} side="left" width={224} bare>
+        {sidebar(true)}
+      </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-13 shrink-0 items-center gap-2 border-b border-line bg-page pr-3 pl-4">
-          <nav className="flex min-w-0 items-center gap-1.5 text-[13px] text-ink-3" aria-label="Ruta">
-            <span>Creamery Ops</span>
-            <IconChevronRight size={12} />
+          <span className="-ml-1.5 flex md:hidden">
+            <IconButton label="Menú" tooltip={false} onClick={() => setMobileNav(true)}>
+              <IconMenu size={16} />
+            </IconButton>
+          </span>
+          <nav className="flex min-w-0 items-center gap-1.5 text-body whitespace-nowrap text-ink-3" aria-label="Ruta">
+            <span className="hidden lg:inline">Creamery Ops</span>
+            <IconChevronRight size={12} className="hidden shrink-0 lg:block" />
             <span className="truncate font-semibold text-ink">{chat ?? "Inicio"}</span>
           </nav>
-          <Input className="ml-auto hidden w-60 sm:flex" placeholder="Buscar…" aria-label="Buscar" leading={<IconSearch size={14} />} trailing={<Kbd>⌘K</Kbd>} />
+          <button
+            type="button"
+            onClick={() => setPalette(true)}
+            className="ml-auto hidden h-8 w-44 shrink-0 items-center gap-2 rounded-control bg-field px-2.5 text-body text-ink-3 shadow-[0_0_0_1px_var(--line)] transition-colors hover:bg-hover sm:flex"
+          >
+            <IconSearch size={14} />
+            <span className="flex-1 text-left">Buscar…</span>
+            <Kbd>{modKey()} K</Kbd>
+          </button>
+          <span className="ml-auto flex sm:hidden">
+            <IconButton label="Buscar" onClick={() => setPalette(true)}>
+              <IconSearch size={16} />
+            </IconButton>
+          </span>
           <IconButton label="Notificaciones">
             <IconBell size={16} />
           </IconButton>
@@ -369,8 +410,8 @@ export default function ExampleApp() {
               <IconSparkle className="text-accent" />
             </IconButton>
           )}
-          <a href="#/" className="hidden sm:block">
-            <Button size="sm">Sistema de diseño</Button>
+          <a href="#/" className="hidden shrink-0 2xl:block">
+            <Button size="sm" className="whitespace-nowrap">Sistema de diseño</Button>
           </a>
         </header>
         <main className="flex-1 overflow-y-auto bg-canvas">
@@ -383,6 +424,39 @@ export default function ExampleApp() {
           <Assistant onClose={() => setAssistant(false)} />
         </div>
       )}
+
+      <CommandPalette
+        open={palette}
+        onOpenChange={setPalette}
+        placeholder="Buscar chats, páginas o acciones…"
+        groups={[
+          {
+            label: "Navegar",
+            items: [
+              { id: "home", label: "Inicio", icon: <IconHome size={15} />, onSelect: () => (setNav("home"), setChat(null)) },
+              { id: "settings", label: "Ajustes", icon: <IconSettings size={15} />, onSelect: () => toast("Ajustes aún no disponibles") },
+              { id: "ds", label: "Sistema de diseño", icon: <IconChevronRight size={15} />, onSelect: () => (location.hash = "#/") },
+            ],
+          },
+          {
+            label: "Chats recientes",
+            items: RECENTS.map((r, i) => ({
+              id: `chat-${i}`,
+              label: r.label,
+              icon: <IconSparkle size={15} />,
+              onSelect: () => setChat(r.label),
+            })),
+          },
+          {
+            label: "Acciones",
+            items: [
+              { id: "new", label: "Nuevo chat con el asistente", icon: <IconPlus size={15} />, keywords: ["crear", "preguntar"], onSelect: () => setAssistant(true) },
+              { id: "theme", label: theme.dark ? "Tema claro" : "Tema oscuro", icon: <IconMoon size={15} />, keywords: ["tema", "dark", "modo"], onSelect: theme.toggle },
+              { id: "notif", label: "Ver notificaciones", icon: <IconBell size={15} />, onSelect: () => toast("Sin notificaciones nuevas") },
+            ],
+          },
+        ]}
+      />
     </div>
   );
 }

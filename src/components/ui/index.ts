@@ -29,5 +29,8 @@ export {
   type Status,
 } from "./Display";
 export { DataTable, type Column } from "./DataTable";
-export { IconButton, ThemeToggle, useTheme } from "./Actions";
+export { Popover, Combobox, type ComboboxOption } from "./Popover";
+export { Sheet } from "./Sheet";
+export { CommandPalette, useHotkey, modKey, type CommandItem, type CommandGroup } from "./Command";
+export { IconButton, ThemeToggle, useTheme, setTheme } from "./Actions";
 export * from "./icons";

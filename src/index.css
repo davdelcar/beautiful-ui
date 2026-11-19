@@ -3,6 +3,9 @@
 @import "./app/beautifui/records-table.css";
 @import "./app/beautifui/sidebar-nav.css";
 
+/* Extensión propia: escala tipográfica, capas y keyframes del kit. */
+@import "./styles/kit.css";
+
 /* Las fuentes las inyecta next/font en el original; aquí vienen de Google Fonts. */
 :root {
   --font-inter: "Inter";

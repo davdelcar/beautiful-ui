@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { DOCS, primitiveDoc, type Doc } from "./docs";
 import { Button } from "@/components/atoms/Button";
 import { EntityChip } from "@/components/atoms/EntityChip";
 import { Shimmer } from "@/components/atoms/Shimmer";
@@ -33,13 +34,19 @@ import {
   CardFooter,
   CardHeader,
   Checkbox,
+  Combobox,
+  CommandPalette,
   DataTable,
   Dialog,
   EmptyState,
   Field,
   FilterChips,
   IconButton,
+  IconArrowRight,
+  IconBell,
   IconCopy,
+  IconFilter,
+  IconMoon,
   IconInbox,
   IconLink,
   IconMore,
@@ -51,6 +58,11 @@ import {
   Input,
   Kbd,
   Menu,
+  Popover,
+  Sheet,
+  modKey,
+  setTheme,
+  useHotkey,
   Progress,
   RadioGroup,
   Segmented,
@@ -86,6 +98,8 @@ function Showcase({
   /** sin superficie canvas (para demos que ya traen la suya) */
   bare?: boolean;
 }) {
+  const doc = DOCS[id] ?? primitiveDoc(id);
+  const [showDoc, setShowDoc] = useState(false);
   return (
     <section id={id} className="primitive-showcase group flex [counter-increment:showcase] w-full scroll-mt-8 flex-col border-b border-dashed border-line px-5 py-8 sm:px-8 sm:py-10">
       <div className="mb-3 flex items-start justify-between gap-3">
@@ -96,7 +110,14 @@ function Showcase({
             <p className="mt-0.5 text-[12.5px] text-pretty text-ink-3 sm:mt-0">{desc}</p>
           </div>
         </div>
-        {controls}
+        <div className="flex shrink-0 items-center gap-1.5">
+          {controls}
+          {doc && (
+            <Button size="xs" variant={showDoc ? "ghost" : "quiet"} aria-expanded={showDoc} onClick={() => setShowDoc((v) => !v)}>
+              <span className="font-mono text-[11px]">&lt;/&gt;</span> Código
+            </Button>
+          )}
+        </div>
       </div>
       {bare ? (
         children
@@ -105,7 +126,34 @@ function Showcase({
           <div className="w-full">{children}</div>
         </div>
       )}
+      {doc && showDoc && <DocPanel doc={doc} />}
     </section>
+  );
+}
+
+/** Ejemplo copiable (CodeBlock oficial) + tabla de props. */
+function DocPanel({ doc }: { doc: Doc }) {
+  return (
+    <div className="mt-3 grid items-start gap-3 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]" style={{ animation: "fade-up 300ms cubic-bezier(0.23,1,0.32,1) both" }}>
+      <CodeBlock filename={doc.file ?? "Ejemplo.tsx"} code={doc.code} lines={doc.code.split("\n")} />
+      {doc.props && (
+        <Card className="overflow-hidden">
+          <div className="primitive-card-bar border-b border-line text-overline text-ink-3 uppercase">Props</div>
+          <dl className="divide-y divide-line">
+            {doc.props.map((p) => (
+              <div key={p.name} className="flex flex-col gap-0.5 px-3.5 py-2">
+                <dt className="flex flex-wrap items-baseline gap-x-2 font-mono text-micro">
+                  <span className="font-medium text-ink">{p.name}</span>
+                  <span className="text-accent-ink">{p.type}</span>
+                  {p.def && <span className="text-ink-3">= {p.def}</span>}
+                </dt>
+                {p.desc && <dd className="text-meta text-ink-2">{p.desc}</dd>}
+              </div>
+            ))}
+          </dl>
+        </Card>
+      )}
+    </div>
   );
 }
 
@@ -159,18 +207,19 @@ function Foundations() {
           ))}
         </div>
       </Showcase>
-      <Showcase id="tipografia" title="Tipografía" desc="Inter 14px, tracking −0.01em, cv11 + ss01; JetBrains Mono para datos.">
-        <Card className="mx-auto max-w-120 divide-y divide-line">
+      <Showcase id="tipografia" title="Tipografía" desc="Escala con nombre: tamaño, interlineado, tracking y peso en una sola clase.">
+        <Card className="mx-auto max-w-140 divide-y divide-line">
           {[
-            ["22 / 600", <span className="text-[22px] font-semibold tracking-[-0.02em]">Buenos días, Ana</span>],
-            ["15 / 600", <span className="text-[15px] font-semibold">Título de diálogo</span>],
-            ["14 / 400", <span className="text-[14px]">El agente revisó 12 registros.</span>],
-            ["13 / 500", <span className="text-[13px] font-medium">Fila de tabla, botón, menú</span>],
-            ["12.5 / 400", <span className="text-[12.5px] text-ink-3">Descripción secundaria</span>],
-            ["10.5 caps", <span className="text-[10.5px] font-medium tracking-[0.04em] text-ink-3 uppercase">Etiqueta de grupo</span>],
-            ["mono 11", <span className="font-mono text-[11px] tabular-nums">churn.ts · 12/12 · +$2,453.44</span>],
+            ["text-display", <span className="text-display">Beautiful UI</span>],
+            ["text-title", <span className="text-title">Buenos días, Ana</span>],
+            ["text-heading", <span className="text-heading">Título de diálogo</span>],
+            ["text-lead", <span className="text-lead text-ink-2">El agente revisó 12 registros.</span>],
+            ["text-body", <span className="text-body">Fila de tabla, botón, menú</span>],
+            ["text-meta", <span className="text-meta text-ink-3">Descripción secundaria</span>],
+            ["text-micro", <span className="font-mono text-micro tabular-nums">churn.ts · 12/12 · +$2,453.44</span>],
+            ["text-overline", <span className="text-overline text-ink-3 uppercase">Etiqueta de grupo</span>],
           ].map(([k, el]) => (
-            <div key={k as string} className="grid grid-cols-[84px_1fr] items-baseline gap-3 px-3 py-2.5">
+            <div key={k as string} className="grid grid-cols-[96px_1fr] items-baseline gap-3 px-3 py-2.5">
               <span className="font-mono text-[10.5px] text-ink-3">{k}</span>
               {el}
             </div>
@@ -273,6 +322,11 @@ function Kit() {
   const [filter, setFilter] = useState<"all" | Status>("all");
   const [sel, setSel] = useState<Set<string>>(new Set(["2"]));
   const [dialog, setDialog] = useState(false);
+  const [country, setCountry] = useState<string | null>("es");
+  const [owner, setOwner] = useState<string | null>(null);
+  const [sheet, setSheet] = useState<"right" | "bottom" | null>(null);
+  const [palette, setPalette] = useState(false);
+  useHotkey("k", () => setPalette((o) => !o));
 
   const columns: Column<Row>[] = [
     { key: "task", header: "Tarea", width: "minmax(0,1.4fr)", render: (r) => <span className="truncate font-medium">{r.task}</span> },
@@ -537,6 +591,164 @@ function Kit() {
         </div>
       </Showcase>
 
+      <Showcase id="popover" title="Popover · Combobox" desc="Panel flotante genérico y select con buscador navegable con teclado.">
+        <div className="flex min-h-72 flex-wrap items-start justify-center gap-3">
+          <div className="w-52">
+            <Combobox
+              value={country}
+              onChange={setCountry}
+              placeholder="País"
+              options={[
+                { value: "es", label: "España", hint: "+34", keywords: ["spain"] },
+                { value: "mx", label: "México", hint: "+52", keywords: ["mexico"] },
+                { value: "ar", label: "Argentina", hint: "+54" },
+                { value: "co", label: "Colombia", hint: "+57" },
+                { value: "cl", label: "Chile", hint: "+56" },
+                { value: "pe", label: "Perú", hint: "+51", keywords: ["peru"] },
+                { value: "us", label: "Estados Unidos", hint: "+1", keywords: ["usa", "eeuu"] },
+              ]}
+            />
+          </div>
+          <div className="w-52">
+            <Combobox
+              value={owner}
+              onChange={setOwner}
+              placeholder="Asignar a…"
+              searchPlaceholder="Buscar persona…"
+              options={[
+                { value: "ana", label: "Ana López", icon: <Avatar name="Ana López" color="#2f6fec" size="sm" /> },
+                { value: "bruno", label: "Bruno Díaz", icon: <Avatar name="Bruno Díaz" color="#1f7a5f" size="sm" /> },
+                { value: "carla", label: "Carla Martín", icon: <Avatar name="Carla Martín" color="#e56d24" size="sm" /> },
+              ]}
+            />
+          </div>
+          <Popover
+            align="end"
+            trigger={({ open, toggle }) => (
+              <Button size="sm" aria-expanded={open} onClick={toggle}>
+                <IconFilter size={13} /> Filtros
+              </Button>
+            )}
+          >
+            {(close) => (
+              <div className="flex flex-col gap-3">
+                <div className="text-heading">Filtrar pedidos</div>
+                <Field label="Importe mínimo">{(id) => <Input id={id} placeholder="$0.00" />}</Field>
+                <Checkbox checked onChange={() => {}} label="Solo pendientes" />
+                <div className="flex justify-end gap-1.5">
+                  <Button size="sm" variant="quiet" onClick={close}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={() => {
+                      close();
+                      toast("Filtros aplicados");
+                    }}
+                  >
+                    Aplicar
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Popover>
+        </div>
+      </Showcase>
+
+      <Showcase id="sheet" title="Sheet" desc="Panel lateral o inferior sobre <dialog> nativo; también la navegación en móvil.">
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button size="sm" onClick={() => setSheet("right")}>
+            Panel lateral
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setSheet("bottom")}>
+            Hoja inferior
+          </Button>
+          <Sheet
+            open={sheet !== null}
+            side={sheet ?? "right"}
+            onClose={() => setSheet(null)}
+            title="Editar pedido"
+            description="Cone King · #1042"
+            footer={
+              <>
+                <Button size="sm" onClick={() => setSheet(null)}>
+                  Cancelar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="accent"
+                  onClick={() => {
+                    setSheet(null);
+                    toast("Pedido actualizado");
+                  }}
+                >
+                  Guardar
+                </Button>
+              </>
+            }
+          >
+            <div className="flex flex-col gap-3">
+              <Field label="Producto">{(id) => <Input id={id} defaultValue="Conos de barquillo" />}</Field>
+              <Field label="País de envío">
+                {() => (
+                  <Combobox
+                    value={country}
+                    onChange={setCountry}
+                    options={[
+                      { value: "es", label: "España" },
+                      { value: "mx", label: "México" },
+                      { value: "ar", label: "Argentina" },
+                    ]}
+                  />
+                )}
+              </Field>
+              <Field label="Notas">{(id) => <Textarea id={id} placeholder="Instrucciones de entrega…" />}</Field>
+              <Alert tone="info" title="Plazo de entrega">7 días laborables.</Alert>
+            </div>
+          </Sheet>
+        </div>
+      </Showcase>
+
+      <Showcase id="comandos" title="Command palette" desc="⌘K / Ctrl+K: busca y ejecuta acciones solo con el teclado.">
+        <div className="flex flex-col items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setPalette(true)}
+            className="flex h-9 w-full max-w-80 items-center gap-2 rounded-control bg-surface px-3 text-body text-ink-3 shadow-btn transition-colors hover:bg-inset"
+          >
+            <IconSearch size={14} />
+            <span className="flex-1 text-left">Buscar o ejecutar…</span>
+            <Kbd>{modKey()}</Kbd>
+            <Kbd>K</Kbd>
+          </button>
+          <span className="text-meta text-ink-3">Prueba a escribir «tema», «nuevo» o «notificacion» (sin tilde).</span>
+          <CommandPalette
+            open={palette}
+            onOpenChange={setPalette}
+            groups={[
+              {
+                label: "Navegar",
+                items: [
+                  { id: "app", label: "App de ejemplo", icon: <IconArrowRight size={15} />, onSelect: () => (location.hash = "#/app") },
+                  { id: "campos", label: "Campos", hint: "Elementos básicos", icon: <IconArrowRight size={15} />, onSelect: () => document.getElementById("campos")?.scrollIntoView() },
+                  { id: "color", label: "Color", hint: "Sistema de diseño", icon: <IconArrowRight size={15} />, onSelect: () => document.getElementById("color")?.scrollIntoView() },
+                ],
+              },
+              {
+                label: "Acciones",
+                items: [
+                  { id: "new", label: "Nueva tarea", icon: <IconPlus size={15} />, shortcut: [modKey(), "N"], keywords: ["crear"], onSelect: () => toast("Tarea creada") },
+                  { id: "theme", label: "Cambiar tema", icon: <IconMoon size={15} />, keywords: ["oscuro", "claro", "dark"], onSelect: () => setTheme(!document.documentElement.classList.contains("dark")) },
+                  { id: "notif", label: "Ver notificaciones", icon: <IconBell size={15} />, onSelect: () => toast("Sin notificaciones nuevas") },
+                  { id: "copy", label: "Copiar enlace", icon: <IconLink size={15} />, onSelect: () => toast("Enlace copiado") },
+                ],
+              },
+            ]}
+          />
+        </div>
+      </Showcase>
+
       <Showcase id="datatable" title="DataTable" desc="Tabla genérica con la rejilla de FilterTable, selección y filas que colapsan al filtrar.">
         <DataTable
           className="mx-auto max-w-160"
@@ -663,7 +875,7 @@ export const NAV = [
   { group: "Átomos", items: [["button", "Button"], ["pills", "ValuePill · EntityChip"], ["shimmer", "Shimmer · StreamText"]] },
   {
     group: "Elementos básicos",
-    items: [["campos", "Campos"], ["seleccion", "Selección"], ["navegacion", "Segmented · Tabs"], ["estados", "Estado · Avatar"], ["cards", "Cards"], ["feedback", "Alert · Empty"], ["overlays", "Overlays"], ["datatable", "DataTable"]],
+    items: [["campos", "Campos"], ["seleccion", "Selección"], ["navegacion", "Segmented · Tabs"], ["estados", "Estado · Avatar"], ["cards", "Cards"], ["feedback", "Alert · Empty"], ["overlays", "Overlays"], ["popover", "Popover · Combobox"], ["sheet", "Sheet"], ["comandos", "Command palette"], ["datatable", "DataTable"]],
   },
   {
     group: "Componentes",

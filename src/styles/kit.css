@@ -1,0 +1,95 @@
+/* Beautiful UI — extensión del kit (propio, no oficial).
+ * Escala tipográfica con nombre, capas, duraciones y keyframes que usan
+ * los elementos básicos. Se carga después de foundation.css. */
+
+@theme {
+  /* ── tipografía: tamaño + interlineado + tracking + peso por rol ──
+   * text-display  portada / hero          32px
+   * text-title    título de página        22px
+   * text-heading  título de card/diálogo  15px
+   * text-lead     párrafo destacado       15px
+   * text-body     texto base de la UI     13px
+   * text-meta     secundario, tablas      12px
+   * text-micro    pies, contadores        11px
+   * text-overline etiqueta de grupo       10.5px (añade `uppercase`) */
+  --text-display: 32px;
+  --text-display--line-height: 1.1;
+  --text-display--letter-spacing: -0.03em;
+  --text-display--font-weight: 600;
+
+  --text-title: 22px;
+  --text-title--line-height: 1.2;
+  --text-title--letter-spacing: -0.02em;
+  --text-title--font-weight: 600;
+
+  --text-heading: 15px;
+  --text-heading--line-height: 1.35;
+  --text-heading--letter-spacing: -0.01em;
+  --text-heading--font-weight: 600;
+
+  --text-lead: 15px;
+  --text-lead--line-height: 1.55;
+
+  --text-body: 13px;
+  --text-body--line-height: 1.5;
+
+  --text-meta: 12px;
+  --text-meta--line-height: 1.45;
+
+  --text-micro: 11px;
+  --text-micro--line-height: 1.35;
+
+  --text-overline: 10.5px;
+  --text-overline--line-height: 1.3;
+  --text-overline--letter-spacing: 0.06em;
+  --text-overline--font-weight: 500;
+
+  /* ── animación ── */
+  --animate-pop-in: pop-in 180ms var(--ease-out-strong) both;
+  --animate-fade-up: fade-up 300ms var(--ease-out-strong) both;
+  --animate-fade-in: fade-in 150ms ease-out both;
+}
+
+/* capas: usa z-[var(--z-overlay)] o los valores en estilos inline */
+:root {
+  --z-sticky: 20;
+  --z-dropdown: 40;
+  --z-overlay: 50;
+  --z-toast: 60;
+
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 300ms;
+}
+
+/* ── Sheet: entrada desde cada lado ─────────────────────── */
+@keyframes sheet-in-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes sheet-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+}
+@keyframes sheet-in-bottom {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+/* el backdrop de los <dialog> del kit aparece con fundido */
+dialog.bui-dialog::backdrop {
+  background: oklch(0.2 0.004 264 / 0.35);
+  backdrop-filter: blur(2px);
+  animation: fade-in 200ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog.bui-dialog,
+  dialog.bui-dialog::backdrop,
+  .bui-pop {
+    animation: none !important;
+  }
+}

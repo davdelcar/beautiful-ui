@@ -79,6 +79,8 @@ src/
   components/atoms/     ← OFICIAL: Button, EntityChip (+Monogram), ValuePill, Shimmer, StreamText
   components/primitives/← OFICIAL: los 20 componentes + GlideMenu
   components/ui/        ← PROPIO: elementos básicos sobre los átomos oficiales
+  styles/kit.css        ← PROPIO: escala tipográfica, capas y keyframes del kit
+  pages/docs.tsx           código y props de cada sección de la galería (botón «Código»)
   pages/DesignSystem.tsx   galería: fundamentos, átomos, kit y los 20 componentes con sus variantes
   pages/ExampleApp.tsx     app completa compuesta solo con piezas del sistema
   vendor/central-icons.tsx sustituto de los iconos de pago que usa SidebarNav
@@ -111,6 +113,10 @@ Todo se importa desde `@/components/ui`, incluidos los átomos oficiales reexpor
 | `Avatar`, `AvatarStack` | `Monogram` de EntityChip |
 | `Alert`, `EmptyState`, `Progress`, `Spinner` | tints semánticos y el estado vacío de SearchList |
 | `Tooltip`, `Dialog`, `ToastProvider` / `useToast` | tokens `--tooltip-*`, `<dialog>` nativo |
+| `Popover`, `Combobox` | panel `shadow-overlay`; buscador sin tildes con ↑ ↓ Enter y `aria-activedescendant` |
+| `Sheet` | `<dialog>` nativo deslizante (derecha, izquierda, abajo); menú móvil |
+| `CommandPalette`, `useHotkey`, `modKey` | paleta ⌘K con grupos, atajos y ranking por inicio de palabra |
+| Escala `text-display` … `text-overline` | `src/styles/kit.css` (tamaño + interlineado + tracking + peso) |
 | `DataTable` | rejilla `--grid-line` y colapso animado de FilterTable, con selección |
 | `IconButton`, `ThemeToggle` / `useTheme` | `primitive-icon-button`; alterna `.dark` con `.theme-switching` |
 

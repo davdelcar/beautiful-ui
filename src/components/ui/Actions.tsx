@@ -1,4 +1,4 @@
-import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { useSyncExternalStore, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "./Overlay";
 import { IconMoon, IconSun } from "./icons";
@@ -38,21 +38,30 @@ export function IconButton({
 
 /** Alterna `.dark` en <html> (la variante `dark` de la fundación) y lo recuerda.
  *  Añade `.theme-switching` un frame para que el cambio sea un único repintado. */
+const isDark = () => document.documentElement.classList.contains("dark");
+const subscribeTheme = (cb: () => void) => {
+  const mo = new MutationObserver(cb);
+  mo.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+  return () => mo.disconnect();
+};
+
+/** Aplica el tema en <html>, lo recuerda en localStorage("bui-theme") y evita transiciones durante el cambio. */
+export function setTheme(dark: boolean) {
+  const root = document.documentElement;
+  root.classList.add("theme-switching");
+  root.classList.toggle("dark", dark);
+  try {
+    localStorage.setItem("bui-theme", dark ? "dark" : "light");
+  } catch {
+    /* almacenamiento no disponible: el tema solo dura esta sesión */
+  }
+  requestAnimationFrame(() => root.classList.remove("theme-switching"));
+}
+
+/** Tema compartido: todos los componentes que lo usan ven el mismo valor (la clase `.dark` de <html>). */
 export function useTheme() {
-  const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
-  useEffect(() => {
-    const root = document.documentElement;
-    root.classList.add("theme-switching");
-    root.classList.toggle("dark", dark);
-    try {
-      localStorage.setItem("bui-theme", dark ? "dark" : "light");
-    } catch {
-      /* almacenamiento no disponible: el tema solo dura esta sesión */
-    }
-    const id = requestAnimationFrame(() => root.classList.remove("theme-switching"));
-    return () => cancelAnimationFrame(id);
-  }, [dark]);
-  return { dark, toggle: () => setDark((d) => !d) };
+  const dark = useSyncExternalStore(subscribeTheme, isDark, () => false);
+  return { dark, toggle: () => setTheme(!isDark()), setTheme };
 }
 
 export function ThemeToggle({ tone }: { tone?: "quiet" | "secondary" }) {

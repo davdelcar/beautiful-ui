@@ -56,7 +56,20 @@ Para actualizar: repite el `add` con `--overwrite`. Si `npx shadcn` falla con EN
 | Tipografía | `font-sans` (Inter) · `font-mono` (cifras, IDs, código) + `tabular-nums` |
 | Easing | `ease-out-strong` · `ease-in-out-strong` |
 
-Escala tipográfica de la librería (px, densa): cuerpo `text-[13px]`, meta `text-[12px]`/`text-[11px]`, título de card `text-[13px] font-semibold`, título de página `text-[22px] font-semibold tracking-[-0.02em]`. Pesos 400/500/600; nada de `font-bold` grande.
+**Escala tipográfica** (una clase = tamaño + interlineado + tracking + peso; úsala en vez de `text-[13px]`):
+
+| Clase | Medida | Uso |
+|---|---|---|
+| `text-display` | 32 / 600 | portada, héroe |
+| `text-title` | 22 / 600 | título de página (uno por vista) |
+| `text-heading` | 15 / 600 | título de card, diálogo, sheet |
+| `text-lead` | 15 | párrafo introductorio |
+| `text-body` | 13 | texto base de la UI |
+| `text-meta` | 12 | secundario, celdas, ayudas |
+| `text-micro` | 11 | pies, contadores, atajos |
+| `text-overline` | 10.5 / 500 | etiqueta de grupo, siempre con `uppercase` |
+
+Pesos 400/500/600; nada de `font-bold` grande. Capas: `--z-dropdown` 40, `--z-overlay` 50, `--z-toast` 60.
 
 Utilidades de la fundación: `primitive-card-bar` (cabecera de card), `primitive-card-pad`, `primitive-card-footer`, `primitive-icon-button`, `filter-status-{todo,progress,done}`.
 
@@ -73,6 +86,10 @@ Animaciones (keyframes globales): `pop-in` (menús), `fade-up` (entrada de bloqu
 - `Menu` — `trigger={({open,toggle}) => …}`, `items: MenuItem[]` (`{label, icon?, shortcut?, danger?, onSelect?}` · `{type:"label", label}` · `{type:"separator"}`), `align`.
 - `Segmented` (selector compacto, `size="sm"|"md"`), `Tabs` (con contador `count`), `FilterChips` (con `dot` de color). Todos: `value`, `onChange`, `options: {value,label,count?}[]`.
 - `Tooltip` — `content`, envuelve un elemento.
+- `Popover` — panel flotante genérico: `trigger={({open,toggle}) => …}`, hijos o `(close) => …`, `align="start"|"center"|"end"`, `side`, `width` (px o `"trigger"`). Para filtros y formularios cortos.
+- `Combobox` — select con buscador (filtra sin tildes, ↑ ↓ Enter): `value`, `onChange`, `options: {value,label,hint?,icon?,keywords?,disabled?}[]`, `searchPlaceholder`, `emptyText`. Úsalo en vez de `Select` con más de ~7 opciones.
+- `Sheet` — panel lateral/inferior: `open`, `onClose`, `side="right"|"left"|"bottom"`, `title`, `description`, `footer`, `width`, `bare`. Para detalle/edición sin salir de la vista y para la navegación en móvil (`<Sheet side="left" width={224} bare><SidebarNav fill /></Sheet>`).
+- `CommandPalette` + `useHotkey` — paleta ⌘K: `open`, `onOpenChange`, `groups: {label, items: {id,label,icon?,hint?,shortcut?,keywords?,onSelect}[]}[]`. Ábrela con `useHotkey("k", () => setOpen(o => !o))`; `modKey()` da "⌘" o "Ctrl". Toda app con navegación debería tenerla.
 - `Dialog` — `open`, `onClose`, `title`, `description`, `footer`, hijos. Usa `<dialog>` nativo.
 - `const toast = useToast()` → `toast(texto, { label, onClick }?)` (acción opcional, p. ej. "Deshacer"). Requiere `<ToastProvider>`.
 - `Card` (`elevation="hairline"|"card"|"raised"`) + `CardHeader` (`title`, `icon`, `action`) + `CardBody` + `CardFooter`.
@@ -80,9 +97,9 @@ Animaciones (keyframes globales): `pop-in` (menús), `fade-up` (entrada de bloqu
 - `StatusPill` (`status="todo"|"progress"|"done"`), `Tag`, `Avatar` (`name`, `color`, `size="sm"|"md"|"lg"|"xl"`, `square`), `AvatarStack` (`people`, `max`).
 - `Alert` (`tone="info"|"success"|"warning"|"danger"`, `title`, `action`), `EmptyState` (`icon`, `title`, `hint`, `action`).
 - `DataTable<T>` — `columns: Column<T>[]` (`key`, `header`, `width`, `align`, `render(row)`), `rows`, `rowKey`, `isVisible`, `selected`/`onSelectedChange` (Set de keys), `toolbar`, `footer`, `minWidth`.
-- `ThemeToggle`, `useTheme()` → `{ dark, toggle }`.
+- `ThemeToggle`, `useTheme()` → `{ dark, toggle, setTheme }` (estado compartido entre componentes), `setTheme(dark)` fuera de React.
 - Átomos oficiales: `EntityChip`, `Monogram`, `ValuePill`, `Shimmer`, `StreamText`, `GlideMenu`.
-- Iconos: `IconSearch IconPlus IconCheck IconX IconChevronDown IconChevronRight IconArrowRight IconMore IconInfo IconAlert IconCheckCircle IconCopy IconTrash IconPencil IconBell IconSun IconMoon IconInbox IconFilter IconLink IconSparkle` (prop `size`). Para más, `iconoir-react` (ya es dependencia) con `width`/`height` 16 y `strokeWidth={1.6}`.
+- Iconos: `IconSearch IconPlus IconCheck IconX IconChevronDown IconChevronRight IconArrowRight IconMore IconInfo IconAlert IconCheckCircle IconCopy IconTrash IconPencil IconBell IconSun IconMoon IconInbox IconFilter IconLink IconSparkle IconMenu IconHome IconSettings` (prop `size`). Para más, `iconoir-react` (ya es dependencia) con `width`/`height` 16 y `strokeWidth={1.6}`.
 
 ## 5. Componentes de IA (`@/components/primitives/*`)
 
@@ -101,7 +118,7 @@ Todos traen datos de demo; pásales los tuyos por props (`rows`, `questions`, `c
 
 ## 6. Composición
 
-Esqueleto de app (igual que la app de ejemplo):
+Esqueleto de app (igual que la app de ejemplo, que además monta `CommandPalette` con ⌘K y un `Sheet` para el menú móvil):
 
 ```tsx
 <div className="flex h-screen overflow-hidden bg-page">
@@ -110,7 +127,7 @@ Esqueleto de app (igual que la app de ejemplo):
     <header className="flex h-13 shrink-0 items-center gap-2 border-b border-line bg-page pr-3 pl-4">…</header>
     <main className="flex-1 overflow-y-auto">
       <div className="mx-auto flex max-w-[1080px] flex-col gap-4 p-4 sm:p-6">
-        <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-ink">…</h1>
+        <h1 className="text-title text-ink">…</h1>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{/* <Stat/> en Cards */}</div>
         <Card><CardHeader title="…" action={<Button size="xs">…</Button>} /><CardBody>…</CardBody></Card>
       </div>
@@ -122,11 +139,14 @@ Esqueleto de app (igual que la app de ejemplo):
 - Fondo `bg-page`; contenido en `Card` (`bg-surface` + `shadow-card`). No anides cards con sombra: dentro de una card usa `bg-inset` o divisores `border-line`.
 - Espaciado denso: `gap-3`/`gap-4` entre bloques, `px-3 py-2.5` dentro. Rejillas con `minmax(0,1fr)`.
 - Color como condimento: neutros por defecto; acento solo en foco/selección/acción clave; semánticos solo para estado.
+- `IconButton` y `primitive-icon-button` fijan `display`: para ocultarlo por breakpoint envuélvelo (`<span className="flex md:hidden"><IconButton …/></span>`).
+- Responsive: sidebar visible desde `md`; en móvil, botón `IconMenu` que abre un `Sheet` con la `SidebarNav`.
 - Accesibilidad: `IconButton` siempre con `label`; foco visible ya lo da la fundación; `aria-label` en navs.
 
 ## 7. Antes de terminar
 
-- [ ] Ningún color/sombra/radio fuera de los tokens; probado en claro y oscuro.
+- [ ] Ningún color/sombra/radio/tamaño de texto fuera de los tokens; probado en claro y oscuro.
+- [ ] Funciona a 390px de ancho (navegación en `Sheet`, sin scroll horizontal).
 - [ ] CSS global importa `beautiful-ui.css` (y no `tailwindcss` además) y las fuentes cargan.
 - [ ] Nada editado dentro de `atoms/`, `primitives/` o `beautifui/`.
 - [ ] El proyecto compila (`tsc`/`build`).

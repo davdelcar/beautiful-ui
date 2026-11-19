@@ -16,7 +16,7 @@ import { IconCheck, IconCheckCircle, IconChevronDown } from "./icons";
 const POP = "pop-in 180ms cubic-bezier(0.23,1,0.32,1) both";
 
 /** Abierto/cerrado con cierre por clic fuera y Escape. */
-function usePopover() {
+export function usePopover() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
