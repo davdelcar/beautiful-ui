@@ -55,15 +55,17 @@ Cada item arrastra solo lo que necesita (dependencias npm e items). Para actuali
 ## Usarlo desde tus agentes (skill + MCP)
 
 ```bash
-npx -y https://davdelcar.github.io/beautiful-ui/mcp/beautiful-ui-mcp.tgz install
+npx -y https://davdelcar.github.io/beautiful-ui/mcp/beautiful-ui-mcp-2.0.0.tgz install
 # --skill-only | --mcp-only   ·   uninstall para quitarlo
 ```
+
+Para actualizar, ejecuta el mismo comando con la versión nueva (`version` en `/r/registry.json`). npx cachea por URL, así que la URL sin versión (`beautiful-ui-mcp.tgz`) puede servir una copia vieja en máquinas donde ya se usó.
 
 Instala la **skill** `beautiful-ui` en `~/.claude/skills`, `~/.codex/skills` y `~/.agents/skills` (según existan) y registra el **MCP** `beautiful-ui` en Claude Code y Codex.
 
 - **Skill** ([`mcp/skill/SKILL.md`](mcp/skill/SKILL.md)): instalación, reglas, tokens, API completa del kit, gráficas, formularios, plantillas, componentes de IA, composición y checklist.
 - **MCP** ([`mcp/server.mjs`](mcp/server.mjs), sin dependencias, lee el registro en vivo): `list_components`, `get_component`, `get_design_tokens`, `get_install_instructions`, `get_guidelines`, `get_example` (app, galería y las 6 plantillas) y el prompt `beautiful-ui`.
-- Otros clientes MCP: `{ "mcpServers": { "beautiful-ui": { "command": "npx", "args": ["-y", "https://davdelcar.github.io/beautiful-ui/mcp/beautiful-ui-mcp.tgz"] } } }`
+- Otros clientes MCP: `{ "mcpServers": { "beautiful-ui": { "command": "npx", "args": ["-y", "https://davdelcar.github.io/beautiful-ui/mcp/beautiful-ui-mcp-2.0.0.tgz"] } } }`
 
 ## El kit (`@/components/ui`)
 

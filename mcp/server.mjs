@@ -23,7 +23,8 @@ const PKG = JSON.parse(readFileSync(join(HERE, "package.json"), "utf8"));
 const SITE = (process.env.BEAUTIFUL_UI_URL || "https://davdelcar.github.io/beautiful-ui").replace(/\/$/, "");
 const RAW = (process.env.BEAUTIFUL_UI_RAW || "https://raw.githubusercontent.com/davdelcar/beautiful-ui/main").replace(/\/$/, "");
 const REGISTRY = `${SITE}/r`;
-const TARBALL = `${SITE}/mcp/beautiful-ui-mcp.tgz`;
+/* URL versionada: npx cachea por URL, así cada versión se instala de verdad */
+const TARBALL = `${SITE}/mcp/beautiful-ui-mcp-${PKG.version}.tgz`;
 const BUNDLED_SKILL = join(HERE, "skill", "SKILL.md");
 
 /* ── red con caché en memoria (5 min) ─────────────────────────────────── */
@@ -314,7 +315,8 @@ async function install() {
       2,
     )}`);
   }
-  console.log("\nReinicia tus agentes para que carguen la skill y el MCP.");
+  console.log(`\nMCP ${PKG.version}. Reinicia tus agentes para que carguen la skill y el MCP.`);
+  console.log("Para actualizar más adelante: npx -y " + SITE + "/mcp/beautiful-ui-mcp-<versión>.tgz install (versión en " + SITE + "/r/registry.json)");
 }
 
 function uninstall() {

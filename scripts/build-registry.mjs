@@ -314,4 +314,7 @@ const packed = execFileSync("npm", ["pack", join(ROOT, "mcp"), "--pack-destinati
   .split("\n")
   .pop();
 await rename(join(MCP_OUT, packed), join(MCP_OUT, "beautiful-ui-mcp.tgz"));
+/* copia versionada: el instalador registra esta URL para que npx no sirva una versión vieja de su caché */
+const MCP_PKG = JSON.parse(await readFile(join(ROOT, "mcp", "package.json"), "utf8"));
+await copyFile(join(MCP_OUT, "beautiful-ui-mcp.tgz"), join(MCP_OUT, `beautiful-ui-mcp-${MCP_PKG.version}.tgz`));
 console.log(`✓ skill en public/skill · MCP en public/mcp/beautiful-ui-mcp.tgz`);
