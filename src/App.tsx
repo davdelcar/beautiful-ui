@@ -49,13 +49,15 @@ export default function App() {
             <ExampleApp />
           ) : Page ? (
             <>
+              {/* barra en el flujo (no flotante): nunca tapa contenido de la plantilla */}
+              <nav aria-label="Galería" className="flex h-9 items-center gap-2 border-b border-line bg-canvas px-4 text-meta text-ink-3">
+                <a href="#plantillas" className="inline-flex items-center gap-1 rounded-chip font-medium text-ink-2 transition-colors hover:text-ink">
+                  <IconChevronRight size={13} className="rotate-180" /> Galería
+                </a>
+                <span aria-hidden>/</span>
+                <span className="truncate">{TEMPLATES.find((t) => t.id === r.id)?.title}</span>
+              </nav>
               <Page />
-              <a
-                href="#plantillas"
-                className="fixed bottom-4 left-4 z-30 inline-flex h-8 items-center gap-1 rounded-full bg-surface pr-3 pl-2 text-meta font-medium text-ink-2 shadow-raised transition-colors hover:text-ink"
-              >
-                <IconChevronRight size={13} className="rotate-180" /> Galería
-              </a>
             </>
           ) : (
             <DesignSystem />

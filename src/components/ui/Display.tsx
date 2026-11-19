@@ -25,7 +25,7 @@ export function CardHeader({ title, action, icon, className }: { title: ReactNod
   return (
     <div className={cn("primitive-card-bar flex items-center gap-2 border-b border-line", className)}>
       {icon && <span className="flex shrink-0 text-ink-3">{icon}</span>}
-      <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink">{title}</span>
+      <span className="min-w-0 flex-1 truncate text-body font-medium text-ink">{title}</span>
       {action}
     </div>
   );
@@ -55,7 +55,7 @@ export function StatusPill({ status, children, className }: { status: Status; ch
   return (
     <span
       className={cn(
-        "inline-flex h-[23px] shrink-0 items-center gap-1.5 rounded-[8px] border px-[7px] text-[12.5px] font-medium whitespace-nowrap",
+        "inline-flex h-[23px] shrink-0 items-center gap-1.5 rounded-[8px] border px-[7px] text-label font-medium whitespace-nowrap",
         STATUS[status].cls,
         className,
       )}
@@ -69,7 +69,7 @@ export function StatusPill({ status, children, className }: { status: Status; ch
 /** Tag neutro — etiqueta de categoría en tablas y cards. */
 export function Tag({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <span className={cn("inline-flex h-[22px] items-center rounded-chip bg-surface px-[7px] text-[12px] font-medium text-ink-2 shadow-btn", className)}>
+    <span className={cn("inline-flex h-[22px] items-center rounded-chip bg-surface px-[7px] text-meta font-medium text-ink-2 shadow-btn", className)}>
       {children}
     </span>
   );
@@ -149,7 +149,7 @@ const ALERT = {
 export function Alert({ tone = "info", title, children, action }: { tone?: keyof typeof ALERT; title: ReactNode; children?: ReactNode; action?: ReactNode }) {
   const t = ALERT[tone];
   return (
-    <div role={tone === "danger" ? "alert" : "status"} className={cn("flex items-start gap-2.5 rounded-card px-3 py-2.5 text-[13px]", t.bg)}>
+    <div role={tone === "danger" ? "alert" : "status"} className={cn("flex items-start gap-2.5 rounded-card px-3 py-2.5 text-body", t.bg)}>
       <span className={cn("mt-px flex shrink-0", t.fg)}>{t.icon}</span>
       <div className="min-w-0 flex-1">
         <div className="font-medium text-ink">{title}</div>
@@ -167,8 +167,8 @@ export function EmptyState({ icon, title, hint, action }: { icon: ReactNode; tit
   return (
     <div className="flex flex-col items-center justify-center gap-1 px-4 py-8 text-center" style={{ animation: "fade-in 250ms ease-out both" }}>
       <span className="mb-1.5 flex size-8 items-center justify-center rounded-control bg-inset text-ink-3 shadow-hairline">{icon}</span>
-      <span className="text-[13px] font-medium text-ink">{title}</span>
-      {hint && <span className="max-w-64 text-[12px] text-ink-3">{hint}</span>}
+      <span className="text-body font-medium text-ink">{title}</span>
+      {hint && <span className="max-w-64 text-meta text-ink-3">{hint}</span>}
       {action && <div className="mt-2.5">{action}</div>}
     </div>
   );
@@ -233,9 +233,9 @@ export function Stat({
   return (
     <Card className="primitive-card-pad flex flex-col gap-1">
       <span className="text-meta text-ink-3">{label}</span>
-      <span className="text-[22px] leading-tight font-semibold tracking-[-0.02em] text-ink">{value}</span>
+      <span className="text-title leading-tight text-ink">{value}</span>
       {delta && (
-        <span className={cn("font-mono text-[11px] tabular-nums", good === null ? "text-ink-3" : good ? "text-green" : "text-red")}>
+        <span className={cn("font-mono text-micro tabular-nums", good === null ? "text-ink-3" : good ? "text-green" : "text-red")}>
           {trend === "up" ? "▲ " : trend === "down" ? "▼ " : ""}
           {delta}
         </span>

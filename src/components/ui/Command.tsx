@@ -104,7 +104,7 @@ export function CommandPalette({
       onClick={(e) => e.target === ref.current && onOpenChange(false)}
       aria-label={L.commandPalette}
       className="bui-dialog mx-auto mt-[12vh] w-[min(560px,calc(100vw-32px))] overflow-hidden rounded-window bg-surface p-0 text-ink shadow-overlay"
-      style={{ animation: open ? "pop-in 180ms cubic-bezier(0.23,1,0.32,1) both" : undefined }}
+      style={{ animation: open ? "dialog-in 200ms cubic-bezier(0.23,1,0.32,1) backwards" : undefined }}
     >
       <div className="flex items-center gap-2.5 border-b border-line px-4">
         <IconSearch size={16} className="shrink-0 text-ink-3" />

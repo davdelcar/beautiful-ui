@@ -89,7 +89,7 @@ export default function SettingsPage() {
       <header className="sticky top-0 z-20 border-b border-line bg-page/85 backdrop-blur">
         <div className="mx-auto flex h-13 max-w-[1040px] items-center gap-3 px-4 sm:px-6">
           <h1 className="text-heading text-ink">Ajustes</h1>
-          <Select className="ml-auto w-48 md:hidden" value={active} onChange={go} options={SECTIONS.map((s) => ({ value: s.id, label: s.label }))} />
+          <Select aria-label="Sección" className="ml-auto w-48 md:hidden" value={active} onChange={go} options={SECTIONS.map((s) => ({ value: s.id, label: s.label }))} />
         </div>
       </header>
       <div className="mx-auto grid max-w-[1040px] gap-6 px-4 py-6 sm:px-6 md:grid-cols-[180px_minmax(0,1fr)]">
@@ -143,6 +143,7 @@ export default function SettingsPage() {
                 <FormField<Profile> name="role" label="Rol">
                   {(f) => (
                     <Select
+                      id={f.id}
                       value={(f.value as string) || null}
                       onChange={f.onChange}
                       options={[
@@ -223,6 +224,7 @@ export default function SettingsPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span className="text-body text-ink">Idioma</span>
               <Select
+                aria-label="Idioma"
                 className="w-40"
                 value={lang}
                 onChange={setLang}

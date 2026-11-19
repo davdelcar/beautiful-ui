@@ -38,5 +38,7 @@ export { Separator, Skeleton, SkeletonText, Collapse, Collapsible, Accordion, Sc
 export { Slider, NumberInput, MultiSelect, Dropzone, formatBytes, type MultiOption } from "./Inputs";
 export { Calendar, DatePicker, DateRangePicker, addDays, addMonths, startOfDay, sameDay, type DateRange, type RangePreset } from "./Dates";
 export { ChartFrame, LineChart, BarChart, Sparkline, SegmentedBar, niceTicks, type Series } from "./Charts";
+export { Floating, useRovingFocus, type Side, type Align } from "./floating";
+export { usePopover, TRIGGER, Chevron } from "./Overlay";
 export { UIProvider, useUI, useLabels, LABELS, type Labels } from "./i18n";
 export * from "./icons";

@@ -8,7 +8,7 @@ description: Sistema de diseño Beautiful UI (React 19 + Tailwind v4, registro s
 Sistema de diseño para apps: lienzo frío casi blanco, cards blancas con borde hairline, sombras suaves en capas, tinta neutra y color semántico con moderación. Claro/oscuro, 5 acentos, contraste WCAG AA verificado con axe, textos en español o inglés.
 
 - Galería: https://davdelcar.github.io/beautiful-ui/ · app: `#/app` · plantillas: `#/plantillas/<login|listado|analitica|ajustes|alta|error>`
-- Registro shadcn: https://davdelcar.github.io/beautiful-ui/r/registry.json (versionado: `/r/v2.0.0/<item>.json`)
+- Registro shadcn: https://davdelcar.github.io/beautiful-ui/r/registry.json (versionado: `/r/v2.1.0/<item>.json`)
 - Tokens DTCG: https://davdelcar.github.io/beautiful-ui/tokens.json · Código: https://github.com/davdelcar/beautiful-ui
 
 Con el MCP `beautiful-ui` conectado, no adivines la API: `list_components`, `get_component <item>` (fuente + firmas), `get_design_tokens`, `get_install_instructions`, `get_example <app|login|listado|analitica|ajustes|alta|error>`.
@@ -37,6 +37,10 @@ Actualizar: el mismo `add` con `--overwrite`. Si `npx shadcn` falla con ENOTEMPT
 - **No edites** `components/atoms`, `components/primitives`, `components/beautifui` (se sobrescriben). Personaliza envolviendo.
 - **Solo tokens**: nada de `bg-white`, `text-gray-500`, `#hex`, `text-[13px]`, `rounded-lg`, `shadow-md`. El modo oscuro sale solo.
 - **Accesibilidad**: `IconButton` siempre con `label`; `Checkbox`/`Switch` sin texto visible → `aria-label`; `Progress` → `label`; nada de botones dentro de botones; textos de ayuda en `text-ink-3` (ya pasa AA, no lo aclares más).
+- **Desplegables**: usa `Select`, `Combobox`, `MultiSelect`, `Menu`, `Popover`, `DatePicker`… o, para uno propio, `usePopover()` + `<Floating anchor={ref} open={open} panelRef={panelRef}>`. Se pintan en un portal (dentro del `<dialog>` si lo hay), voltean si no caben y nunca los recorta un `overflow-hidden`; no hagas paneles con `absolute top-full`.
+- **Etiquetas**: dentro de `Field`/`FormField` pasa el id a todo control no nativo (`<Select id={id}>`, `Combobox`, `MultiSelect`, `DatePicker`, `DateRangePicker`); sin etiqueta visible, `aria-label`.
+- **`cn()`** ya conoce los tokens (`text-body`, `rounded-card`, `shadow-card`…). Si usas tu propio `cn`, extiende tailwind-merge con esos grupos o descartará `text-body` al combinarlo con `text-ink`.
+- **Layout**: en zonas cuyo ancho depende de paneles (sidebar, asistente), usa container queries (`@container` + `@2xl:grid-cols-4`) en vez de breakpoints de ventana. Nada de elementos `fixed` encima del contenido salvo overlays y toasts.
 - `IconButton`/`primitive-icon-button` fijan `display`: para ocultarlo por breakpoint, envuélvelo (`<span className="flex md:hidden">…</span>`).
 - Next App Router: los componentes ya llevan `"use client"` donde hace falta; tus páginas con hooks también.
 
@@ -67,7 +71,7 @@ Animaciones: `pop-in` (menús), `fade-up` (entradas, escalonadas), `fade-in`, `s
 
 **Acciones**: `Button` (`variant` primary · secondary · ghost · accent · success · quiet; `size` xs · sm · md; un solo primary por vista) · `IconButton` (`label`, `tone`) · `ThemeToggle`.
 
-**Campos**: `Field` (`label`, `hint`, `error`, hijos `(id) => …`) · `Input` (`leading`, `trailing`) · `Textarea` · `Select` (≤ 7 opciones) · `Combobox` (con buscador, `hint`, `icon`, `keywords`) · `MultiSelect` (chips) · `Checkbox` · `RadioGroup` · `Switch` · `Slider` (`showValue`, `format`) · `NumberInput` (`min`, `max`, `step`, `suffix`) · `Dropzone` (`files`, `onFilesChange`, `accept`, `maxSize`) · `Kbd`.
+**Campos** (todos con la misma piel: pozo `bg-field`, borde `line`, anillo de acento de 3px al enfocar o abrir): `Field` (`label`, `hint`, `error`, hijos `(id) => …`) · `Input` (`leading`, `trailing`) · `Textarea` · `Select` (≤ 7 opciones, ↑ ↓ Enter) · `Combobox` (con buscador, `hint`, `icon`, `keywords`) · `MultiSelect` (chips) · `Checkbox` · `RadioGroup` · `Switch` · `Slider` (`showValue`, `format`) · `NumberInput` (`min`, `max`, `step`, `suffix`) · `Dropzone` (`files`, `onFilesChange`, `accept`, `maxSize`) · `Kbd`.
 
 **Fechas**: `DatePicker` (`value: Date | null`, `min`, `max`) · `DateRangePicker` (`value: { from, to, preset? }`, presets Hoy/7/30/90 días/mes) · `Calendar` (`mode="single" | "range"`) · utilidades `addDays`, `addMonths`, `startOfDay`, `sameDay`.
 
@@ -82,7 +86,7 @@ const form = useZodForm(schema, { defaultValues: { email: "", plan: "" } });
   <FormSubmit>Guardar</FormSubmit>
 </Form>
 ```
-Para controles no nativos usa `f.value` / `f.onChange` y llama `f.onBlur()` al elegir. Formularios por pasos: un schema y `form.trigger([campos del paso])` antes de avanzar.
+Para controles no nativos usa `f.value` / `f.onChange` y pásales `id={f.id}`. Valida al enviar (o con `form.trigger([campos])` en cada paso) y después en vivo: los errores no aparecen al salir de un campo, así no desplazan el layout bajo el puntero.
 
 **Navegación**: `Tabs` · `Segmented` · `FilterChips` · `Breadcrumb` (`items`, `max`) · `Pagination` (`page`, `total`, `onChange`, `compact`) · `Stepper` (`steps`, `current`, `onStepClick`, `orientation`) · `CommandPalette` + `useHotkey("k", …)` + `modKey()` (toda app con navegación debería tener ⌘K).
 

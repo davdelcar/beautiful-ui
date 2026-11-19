@@ -56,10 +56,12 @@ function AuthCard({
   };
 
   return (
-    <div className="relative flex min-h-dvh flex-col items-center justify-center bg-page px-4 py-10">
-      <div className="absolute top-3 right-3">
+    <div className="flex min-h-dvh flex-col bg-page">
+      {/* en el flujo: en pantallas bajas el botón no puede caer encima de la card */}
+      <div className="flex justify-end p-3">
         <ThemeToggle />
       </div>
+      <div className="flex flex-1 items-center justify-center px-4 pb-14">
       <div className="flex w-full max-w-[380px] flex-col gap-6" style={{ animation: "fade-up 500ms cubic-bezier(0.23,1,0.32,1) both" }}>
         <div className="flex flex-col items-center gap-3 text-center">
           <span className="flex size-10 items-center justify-center rounded-[11px] bg-ink text-heading text-canvas shadow-raised">{brand[0]}</span>
@@ -132,6 +134,7 @@ function AuthCard({
             {isLogin ? "Regístrate" : "Inicia sesión"}
           </button>
         </p>
+      </div>
       </div>
     </div>
   );

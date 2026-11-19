@@ -2,9 +2,10 @@ import { useId, useRef, useState, type CSSProperties, type ReactNode } from "rea
 import { cn } from "@/lib/utils";
 import { fieldBase } from "./Field";
 import { useLabels, useUI } from "./i18n";
-import { IconCheck, IconChevronDown, IconPlus, IconSearch, IconX } from "./icons";
+import { Floating } from "./floating";
+import { IconCheck, IconPlus, IconSearch, IconX } from "./icons";
 import { matches, useListNav } from "./listbox";
-import { usePopover } from "./Overlay";
+import { Chevron, usePopover } from "./Overlay";
 
 /* ── Slider ────────────────────────────────────────────── */
 
@@ -140,7 +141,9 @@ export function MultiSelect<T extends string>({
   placeholder,
   maxChips = 3,
   className,
+  id,
 }: {
+  id?: string;
   value: T[];
   onChange: (value: T[]) => void;
   options: MultiOption<T>[];
@@ -150,7 +153,7 @@ export function MultiSelect<T extends string>({
   className?: string;
 }) {
   const L = useLabels();
-  const { open, setOpen, ref } = usePopover();
+  const { open, setOpen, ref, panelRef } = usePopover();
   const [query, setQuery] = useState("");
   const visible = options.filter((o) => matches(query, o.label, ...(o.keywords ?? [])));
   const toggle = (v: T) => onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v]);
@@ -168,12 +171,13 @@ export function MultiSelect<T extends string>({
           setOpen((o) => !o);
         }}
         className={cn(
-          "flex min-h-8 w-full cursor-pointer flex-wrap items-center gap-1 rounded-control bg-surface py-1 pr-1 pl-1.5 text-body shadow-btn transition-[background-color,box-shadow] duration-150 hover:bg-inset",
-          open && "shadow-[0_0_0_1px_var(--accent),0_0_0_4px_var(--accent-tint)]",
+          "flex min-h-8 w-full cursor-pointer flex-wrap items-center gap-1 rounded-control border border-line bg-field py-[3px] pr-1 pl-1.5 text-body shadow-[0_1px_2px_rgba(0,0,0,0.035)] transition-[border-color,box-shadow,background-color] duration-150 hover:border-line-strong",
+          "focus-within:border-accent focus-within:bg-surface focus-within:shadow-[0_0_0_3px_var(--accent-tint)]",
+          open && "border-accent bg-surface shadow-[0_0_0_3px_var(--accent-tint)]",
         )}
       >
         {chosen.slice(0, maxChips).map((o) => (
-          <span key={o.value} className="inline-flex h-6 items-center gap-1 rounded-chip bg-hover-2 pr-0.5 pl-1.5 text-meta text-ink">
+          <span key={o.value} className="inline-flex h-6 items-center gap-1 rounded-chip bg-surface pr-0.5 pl-1.5 text-meta text-ink shadow-hairline">
             {o.label}
             <button
               type="button"
@@ -187,6 +191,7 @@ export function MultiSelect<T extends string>({
         ))}
         {chosen.length > maxChips && <span className="px-1 text-meta text-ink-3">+{chosen.length - maxChips}</span>}
         <button
+          id={id}
           type="button"
           aria-haspopup="listbox"
           aria-expanded={open}
@@ -201,15 +206,14 @@ export function MultiSelect<T extends string>({
               setOpen(true);
             }
           }}
-          className="flex h-6 min-w-6 flex-1 items-center justify-between gap-2 rounded-chip px-1 text-left"
+          className="flex h-6 min-w-6 flex-1 items-center justify-between gap-2 rounded-chip px-1 text-left outline-none"
         >
           <span className="truncate text-ink-3">{chosen.length === 0 ? (placeholder ?? L.select) : ""}</span>
-          <IconChevronDown size={13} className="shrink-0 text-ink-3" />
+          <Chevron open={open} />
         </button>
       </div>
 
-      {open && (
-        <div className="bui-pop absolute top-full right-0 left-0 z-40 mt-1.5 min-w-56 overflow-hidden rounded-card bg-surface shadow-overlay" style={{ animation: "pop-in 180ms cubic-bezier(0.23,1,0.32,1) both" }}>
+      <Floating anchor={ref} open={open} width="trigger" panelRef={panelRef} className="flex min-w-56 flex-col overflow-hidden rounded-card bg-surface shadow-overlay">
           <div className="flex items-center gap-2 border-b border-line px-2.5">
             <IconSearch size={14} className="shrink-0 text-ink-3" />
             <input
@@ -232,7 +236,7 @@ export function MultiSelect<T extends string>({
             />
             {value.length > 0 && <span className="shrink-0 text-micro text-ink-3 tabular-nums">{value.length} {L.selected}</span>}
           </div>
-          <div id={nav.listId} role="listbox" aria-multiselectable className="max-h-64 overflow-y-auto p-1">
+          <div id={nav.listId} role="listbox" aria-multiselectable className="max-h-64 min-h-0 flex-1 overflow-y-auto p-1">
             {visible.length === 0 && <div className="px-2 py-6 text-center text-meta text-ink-3">{L.noResults}</div>}
             {visible.map((o, i) => {
               const on = value.includes(o.value);
@@ -247,7 +251,7 @@ export function MultiSelect<T extends string>({
                   onClick={() => toggle(o.value)}
                   className={cn("flex h-8 cursor-pointer items-center gap-2 rounded-chip px-2 text-body text-ink", i === nav.active && "bg-hover-2")}
                 >
-                  <span className={cn("flex size-4 shrink-0 items-center justify-center rounded-[4px] transition-colors", on ? "bg-accent text-white" : "bg-surface shadow-btn")}>
+                  <span className={cn("flex size-4 shrink-0 items-center justify-center rounded-[5px] transition-colors", on ? "bg-accent text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]" : "bg-surface shadow-btn")}>
                     {on && <IconCheck size={11} strokeWidth={3} />}
                   </span>
                   {o.icon && <span className="flex shrink-0 text-ink-3">{o.icon}</span>}
@@ -257,8 +261,7 @@ export function MultiSelect<T extends string>({
               );
             })}
           </div>
-        </div>
-      )}
+      </Floating>
     </div>
   );
 }

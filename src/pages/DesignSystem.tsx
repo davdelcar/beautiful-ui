@@ -269,8 +269,9 @@ function Kit() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Nombre">{(id) => <Input id={id} placeholder="Ej. Ana López" />}</Field>
             <Field label="Rol">
-              {() => (
+              {(id) => (
                 <Select
+                  id={id}
                   value={role}
                   onChange={setRole}
                   options={[
@@ -457,7 +458,7 @@ function Kit() {
       </Showcase>
 
       <Showcase id="overlays" title="Menu · Tooltip · Dialog · Toast" desc="Paneles shadow-overlay con pop-in de 180ms y resaltado GlideMenu.">
-        <div className="flex min-h-56 flex-wrap items-start justify-center gap-2">
+        <div className="flex flex-wrap items-start justify-center gap-2">
           <Menu
             trigger={({ open, toggle }) => (
               <Button size="sm" aria-expanded={open} onClick={toggle}>
@@ -508,7 +509,7 @@ function Kit() {
       </Showcase>
 
       <Showcase id="popover" title="Popover · Combobox" desc="Panel flotante genérico y select con buscador navegable con teclado.">
-        <div className="flex min-h-72 flex-wrap items-start justify-center gap-3">
+        <div className="flex flex-wrap items-start justify-center gap-3">
           <div className="w-52">
             <Combobox
               value={country}
@@ -607,8 +608,9 @@ function Kit() {
             <div className="flex flex-col gap-3">
               <Field label="Producto">{(id) => <Input id={id} defaultValue="Conos de barquillo" />}</Field>
               <Field label="País de envío">
-                {() => (
+                {(id) => (
                   <Combobox
+                    id={id}
                     value={country}
                     onChange={setCountry}
                     options={[

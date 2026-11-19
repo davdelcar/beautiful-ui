@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import { Button } from "@/components/atoms/Button";
 import { cn } from "@/lib/utils";
 import { useUI } from "./i18n";
-import { IconCheck, IconChevronDown, IconChevronRight } from "./icons";
-import { usePopover } from "./Overlay";
+import { Floating, useRovingFocus } from "./floating";
+import { IconCheck, IconChevronRight } from "./icons";
+import { Chevron, TRIGGER, usePopover } from "./Overlay";
 
 /* ── utilidades de fecha (sin dependencias) ── */
 
@@ -27,6 +28,8 @@ type CalendarProps = {
   min?: Date;
   max?: Date;
   className?: string;
+  /** enfoca el día activo al montar (dentro de un selector) */
+  autoFocus?: boolean;
 } & (
   | { mode?: "single"; value: Date | null; onChange: (date: Date) => void }
   | { mode: "range"; value: DateRange; onChange: (range: DateRange) => void }
@@ -45,7 +48,7 @@ export function Calendar(props: CalendarProps) {
   const [focus, setFocus] = useState<Date>(() => startOfDay(anchor ?? new Date()));
   const [hover, setHover] = useState<Date | null>(null);
   const grid = useRef<HTMLDivElement>(null);
-  const keyboard = useRef(false);
+  const keyboard = useRef(!!props.autoFocus);
 
   const ws = weekStart(locale);
   const days = useMemo(() => {
@@ -170,10 +173,8 @@ export function Calendar(props: CalendarProps) {
 
 /* ── DatePicker ────────────────────────────────────────── */
 
-const triggerCls = `flex h-8 w-full items-center justify-between gap-2 rounded-control bg-surface pr-2 pl-2.5 text-body
-  shadow-btn transition-[background-color,box-shadow] duration-150 hover:bg-inset aria-expanded:shadow-[0_0_0_1px_var(--accent),0_0_0_4px_var(--accent-tint)]`;
-const panelCls = "bui-pop absolute top-full left-0 z-40 mt-1.5 rounded-card bg-surface shadow-overlay";
-const POP = { animation: "pop-in 180ms cubic-bezier(0.23,1,0.32,1) both", transformOrigin: "top left" };
+const triggerCls = TRIGGER;
+const panelCls = "rounded-card bg-surface shadow-overlay";
 
 /** Campo de fecha: botón con la fecha formateada + calendario en popover. */
 export function DatePicker({
@@ -194,35 +195,35 @@ export function DatePicker({
   id?: string;
 }) {
   const { locale, labels: L } = useUI();
-  const { open, setOpen, ref } = usePopover();
+  const { open, setOpen, ref, panelRef, focusTrigger } = usePopover();
   const fmt = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
+  const done = () => (setOpen(false), focusTrigger());
   return (
     <div ref={ref} className={cn("relative", className)}>
       <button id={id} type="button" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen((o) => !o)} className={triggerCls}>
         <span className={cn("truncate", value ? "text-ink" : "text-ink-3")}>{value ? fmt.format(value) : (placeholder ?? L.pickDate)}</span>
         <CalendarGlyph />
       </button>
-      {open && (
-        <div role="dialog" aria-label={L.pickDate} className={cn(panelCls, "p-3")} style={POP}>
-          <Calendar
-            value={value}
-            min={min}
-            max={max}
-            onChange={(d) => {
-              onChange(d);
-              setOpen(false);
-            }}
-          />
-          <div className="mt-2 flex justify-between border-t border-line pt-2">
-            <Button size="xs" variant="quiet" onClick={() => (onChange(null), setOpen(false))}>
-              {L.clear}
-            </Button>
-            <Button size="xs" onClick={() => (onChange(startOfDay(new Date())), setOpen(false))}>
-              {L.today}
-            </Button>
-          </div>
+      <Floating anchor={ref} open={open} panelRef={panelRef} role="dialog" aria-label={L.pickDate} className={cn(panelCls, "overflow-y-auto p-3")}>
+        <Calendar
+          value={value}
+          min={min}
+          max={max}
+          autoFocus
+          onChange={(d) => {
+            onChange(d);
+            done();
+          }}
+        />
+        <div className="mt-2 flex justify-between border-t border-line pt-2">
+          <Button size="xs" variant="quiet" onClick={() => (onChange(null), done())}>
+            {L.clear}
+          </Button>
+          <Button size="xs" onClick={() => (onChange(startOfDay(new Date())), done())}>
+            {L.today}
+          </Button>
         </div>
-      )}
+      </Floating>
     </div>
   );
 }
@@ -240,15 +241,18 @@ export function DateRangePicker({
   onChange,
   presets,
   className,
+  id,
 }: {
+  id?: string;
   value: DateRange & { preset?: string };
   onChange: (value: DateRange & { preset?: string }) => void;
   presets?: RangePreset[];
   className?: string;
 }) {
   const { locale, labels: L } = useUI();
-  const { open, setOpen, ref } = usePopover();
+  const { open, setOpen, ref, panelRef, focusTrigger } = usePopover();
   const [custom, setCustom] = useState(false);
+  const onKeyDown = useRovingFocus(panelRef, open && !custom, "[role=menuitemradio],[data-preset]");
   const today = startOfDay(new Date());
   const list: RangePreset[] = presets ?? [
     { id: "today", label: L.today, range: () => ({ from: today, to: today }) },
@@ -269,33 +273,35 @@ export function DateRangePicker({
 
   return (
     <div ref={ref} className={cn("relative inline-flex", className)}>
-      <button type="button" aria-haspopup="dialog" aria-expanded={open} onClick={() => (setCustom(!active && !!value.from), setOpen((o) => !o))} className={cn(triggerCls, "w-auto min-w-44")}>
+      <button id={id} type="button" aria-haspopup="dialog" aria-expanded={open} onClick={() => (setCustom(!active && !!value.from), setOpen((o) => !o))} className={cn(triggerCls, "w-auto min-w-44")}>
         <span className="flex items-center gap-2 truncate text-ink">
           <CalendarGlyph />
           {text}
         </span>
-        <IconChevronDown size={13} className="text-ink-3" />
+        <Chevron open={open} />
       </button>
-      {open && (
-        <div role="dialog" aria-label={L.customRange} className={cn(panelCls, "w-max p-1")} style={POP}>
+      <Floating anchor={ref} open={open} panelRef={panelRef} role="dialog" aria-label={L.customRange} onKeyDown={onKeyDown} className={cn(panelCls, "w-max overflow-y-auto p-1")}>
           {!custom ? (
             <div className="flex w-52 flex-col">
               {list.map((p) => (
                 <button
                   key={p.id}
                   type="button"
+                  role="menuitemradio"
+                  aria-checked={p.id === value.preset}
                   onClick={() => {
                     onChange({ ...p.range(), preset: p.id });
                     setOpen(false);
+                    focusTrigger();
                   }}
-                  className="flex h-8 items-center justify-between rounded-chip px-2 text-left text-body text-ink transition-colors hover:bg-hover-2"
+                  className="flex h-8 items-center justify-between gap-3 rounded-chip px-2 text-left text-body text-ink outline-none transition-colors hover:bg-hover-2 focus-visible:bg-hover-2"
                 >
                   {p.label}
-                  {p.id === value.preset && <IconCheck size={14} strokeWidth={2.6} className="text-ink" />}
+                  <IconCheck size={13} className={cn("shrink-0 text-accent-ink", p.id !== value.preset && "invisible")} />
                 </button>
               ))}
               <div className="my-1 h-px bg-line" />
-              <button type="button" onClick={() => setCustom(true)} className="flex h-8 items-center justify-between rounded-chip px-2 text-left text-body text-ink-2 transition-colors hover:bg-hover-2 hover:text-ink">
+              <button type="button" data-preset onClick={() => setCustom(true)} className="flex h-8 items-center justify-between rounded-chip px-2 text-left text-body text-ink-2 outline-none transition-colors hover:bg-hover-2 hover:text-ink focus-visible:bg-hover-2">
                 {L.customRange}
                 <IconChevronRight size={13} />
               </button>
@@ -305,9 +311,10 @@ export function DateRangePicker({
               <Calendar
                 mode="range"
                 value={value}
+                autoFocus
                 onChange={(r) => {
                   onChange({ ...r, preset: undefined });
-                  if (r.from && r.to) setOpen(false);
+                  if (r.from && r.to) (setOpen(false), focusTrigger());
                 }}
               />
               <div className="mt-2 flex justify-between border-t border-line pt-2">
@@ -320,8 +327,7 @@ export function DateRangePicker({
               </div>
             </div>
           )}
-        </div>
-      )}
+      </Floating>
     </div>
   );
 }

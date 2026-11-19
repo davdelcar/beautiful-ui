@@ -126,13 +126,13 @@ export function MoreFoundations() {
         }
       >
         <UIProvider locale={lang}>
-          <div className="flex min-h-96 flex-wrap items-start justify-center gap-4">
+          <div className="flex flex-wrap items-start justify-center gap-4">
             <Card className="primitive-card-pad">
               <Calendar value={date} onChange={setDate} />
             </Card>
             <div className="flex w-56 flex-col gap-3">
               <DatePicker value={date} onChange={setDate} />
-              <Combobox value={null} onChange={() => {}} options={[{ value: "a", label: "Alpha" }]} />
+              <Combobox aria-label="Demo" value={null} onChange={() => {}} options={[{ value: "a", label: "Alpha" }]} />
               <Pagination page={page} total={9} onChange={setPage} compact />
             </div>
           </div>
@@ -258,8 +258,9 @@ export function MoreKit() {
           <UI.Field label="Volumen">{(id) => <Slider id={id} value={vol} onChange={setVol} showValue format={(v) => `${v} %`} />}</UI.Field>
           <UI.Field label="Cantidad">{(id) => <NumberInput id={id} value={qty} onChange={setQty} min={0} max={99} suffix="uds" />}</UI.Field>
           <UI.Field label="Módulos" className="sm:col-span-2">
-            {() => (
+            {(id) => (
               <MultiSelect
+                id={id}
                 value={tags}
                 onChange={setTags}
                 options={[
@@ -277,13 +278,13 @@ export function MoreKit() {
       </Showcase>
 
       <Showcase id="fechas" title="Calendar · DatePicker · DateRangePicker" desc="Rejilla navegable con flechas; presets antes que el calendario.">
-        <div className="flex min-h-100 flex-wrap items-start justify-center gap-4">
+        <div className="flex flex-wrap items-start justify-center gap-4">
           <Card className="primitive-card-pad">
             <Calendar mode="range" value={range} onChange={setRange} />
           </Card>
           <div className="flex w-60 flex-col gap-3">
             <UI.Field label="Entrega">{(id) => <DatePicker id={id} value={day} onChange={setDay} min={new Date()} />}</UI.Field>
-            <UI.Field label="Periodo">{() => <DateRangePicker value={preset} onChange={setPreset} />}</UI.Field>
+            <UI.Field label="Periodo">{(id) => <DateRangePicker id={id} value={preset} onChange={setPreset} />}</UI.Field>
           </div>
         </div>
       </Showcase>
@@ -311,6 +312,7 @@ export function MoreKit() {
               <FormField<Profile> name="plan" label="Plan" required>
                 {(f) => (
                   <UI.Select
+                    id={f.id}
                     value={(f.value as string) || null}
                     onChange={(v) => (f.onChange(v), f.onBlur())}
                     options={[

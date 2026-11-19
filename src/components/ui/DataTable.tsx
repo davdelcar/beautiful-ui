@@ -85,7 +85,8 @@ export function DataTable<T>({
     onSelectedChange!(next);
   };
 
-  const cell = "flex min-w-0 items-center px-3 py-2";
+  /* los hijos pueden encogerse: un texto largo se trunca en su celda en vez de invadir la siguiente */
+  const cell = "flex min-w-0 items-center px-3 py-2 [&>*]:min-w-0";
 
   return (
     <div className={cn("overflow-hidden rounded-card bg-surface shadow-card", className)}>
@@ -94,7 +95,7 @@ export function DataTable<T>({
         <div style={{ minWidth }} role="table" aria-rowcount={visible.length + 1}>
           <div
             role="row"
-            className="grid border-b border-[var(--grid-line)] bg-inset text-[12.5px] font-medium text-ink-2"
+            className="grid border-b border-[var(--grid-line)] bg-inset text-label font-medium text-ink-2"
             style={{ gridTemplateColumns: template }}
           >
             {selectable && (
@@ -151,7 +152,7 @@ export function DataTable<T>({
                   <div
                     role="row"
                     className={cn(
-                      "grid border-b border-[var(--grid-line)] text-[13px] text-ink transition-colors duration-100",
+                      "grid border-b border-[var(--grid-line)] text-body text-ink transition-colors duration-100",
                       on ? "bg-[color-mix(in_srgb,var(--accent)_5%,var(--surface))]" : "hover:bg-hover",
                       onRowClick && "cursor-pointer",
                     )}
@@ -178,7 +179,7 @@ export function DataTable<T>({
           {empty && visible.length === 0 && <div style={{ animation: "fade-in 200ms ease-out both" }}>{empty}</div>}
         </div>
       </div>
-      {footer && <div className="primitive-card-bar flex items-center justify-between gap-2 text-[12px] text-ink-3">{footer}</div>}
+      {footer && <div className="primitive-card-bar flex items-center justify-between gap-2 text-meta text-ink-3">{footer}</div>}
     </div>
   );
 }

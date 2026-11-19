@@ -28,9 +28,13 @@ import { cn } from "@/lib/utils";
  *   </Form>
  */
 
-/** useForm con el resolver de zod y validación al salir de cada campo. */
+/**
+ * useForm con el resolver de zod. Valida al enviar (o al `trigger` de un paso) y
+ * después en vivo mientras se corrige: los errores no aparecen al salir de un
+ * campo, así ningún mensaje desplaza el layout bajo el puntero a mitad de clic.
+ */
 export function useZodForm<S extends z.ZodType<FieldValues, FieldValues>>(schema: S, options?: Omit<UseFormProps<z.input<S>, unknown, z.output<S>>, "resolver">) {
-  return useForm<z.input<S>, unknown, z.output<S>>({ mode: "onTouched", ...options, resolver: zodResolver(schema) });
+  return useForm<z.input<S>, unknown, z.output<S>>({ mode: "onSubmit", reValidateMode: "onChange", ...options, resolver: zodResolver(schema) });
 }
 
 export function Form<TIn extends FieldValues, TOut extends FieldValues>({
@@ -103,7 +107,7 @@ export function FormField<T extends FieldValues = FieldValues>({
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       {label && (
-        <label htmlFor={id} className="text-[12.5px] font-medium text-ink-2">
+        <label htmlFor={id} className="text-label font-medium text-ink-2">
           {label}
           {required && <span className="ml-0.5 text-red" aria-hidden>*</span>}
         </label>

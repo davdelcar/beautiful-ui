@@ -118,7 +118,7 @@ export default function WizardPage({ onComplete }: { onComplete?: (values: Value
                       {(f) => <Input {...f.input} autoFocus placeholder="Acme S.L." />}
                     </FormField>
                     <FormField<Values> name="country" label="País" required>
-                      {(f) => <Combobox value={(f.value as string) || null} onChange={(x) => (f.onChange(x), f.onBlur())} options={COUNTRIES} placeholder="Elige un país" />}
+                      {(f) => <Combobox id={f.id} value={(f.value as string) || null} onChange={(x) => (f.onChange(x), f.onBlur())} options={COUNTRIES} placeholder="Elige un país" />}
                     </FormField>
                     <FormField<Values> name="size" label="Tamaño del equipo">
                       {(f) => (
@@ -142,7 +142,7 @@ export default function WizardPage({ onComplete }: { onComplete?: (values: Value
                       {(f) => <NumberInput id={f.id} value={f.value as number | null} onChange={(x) => f.onChange(x ?? undefined)} min={1} max={500} suffix="personas" aria-invalid={f.invalid} className="w-48" />}
                     </FormField>
                     <FormField<Values> name="modules" label="Módulos" required>
-                      {(f) => <MultiSelect value={f.value as string[]} onChange={(x) => (f.onChange(x), f.onBlur())} options={MODULES} placeholder="Elige módulos" />}
+                      {(f) => <MultiSelect id={f.id} value={f.value as string[]} onChange={(x) => (f.onChange(x), f.onBlur())} options={MODULES} placeholder="Elige módulos" />}
                     </FormField>
                     <FormField<Values> name="budget" label="Presupuesto mensual">
                       {(f) => <Slider id={f.id} value={f.value as number} onChange={f.onChange} min={0} max={2000} step={50} showValue format={money} />}

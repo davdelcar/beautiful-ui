@@ -59,7 +59,8 @@ export function Sheet({
       className={cn("bui-dialog fixed m-0 max-h-none max-w-none overflow-hidden border-line bg-surface p-0 text-ink shadow-overlay", s.box, className)}
       style={{
         width: side === "bottom" ? undefined : `min(${width}px, 100vw)`,
-        animation: open ? `${s.anim} 320ms cubic-bezier(0.23,1,0.32,1) both` : undefined,
+        /* backwards: al terminar no queda transform (si quedara, atraparía los paneles fixed) */
+        animation: open ? `${s.anim} 320ms cubic-bezier(0.23,1,0.32,1) backwards` : undefined,
       }}
     >
       {bare ? (

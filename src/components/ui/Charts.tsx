@@ -274,7 +274,7 @@ export function LineChart({ area = false, ...p }: PlotProps & { area?: boolean }
             {ticks.map((t) => (
               <g key={t}>
                 <line x1={PAD.left} x2={width - PAD.right} y1={Y(t)} y2={Y(t)} stroke={t === 0 ? "var(--chart-axis)" : "var(--chart-grid)"} strokeWidth={1} shapeRendering="crispEdges" />
-                <text x={PAD.left - 8} y={Y(t)} dy="0.32em" textAnchor="end" className="fill-ink-3 text-[11px] tabular-nums">
+                <text x={PAD.left - 8} y={Y(t)} dy="0.32em" textAnchor="end" className="fill-ink-3 text-micro tabular-nums">
                   {fmt.tick(t, y1)}
                 </text>
               </g>
@@ -282,7 +282,7 @@ export function LineChart({ area = false, ...p }: PlotProps & { area?: boolean }
             {p.data.map((r, i) =>
               i % step === 0 || i === p.data.length - 1 ? (
                 i === p.data.length - 1 && i % step !== 0 && p.data.length - 1 - (i - (i % step)) < step / 2 ? null : (
-                  <text key={i} x={X(i)} y={height - 6} textAnchor={i === 0 && p.data.length > 1 ? "start" : i === p.data.length - 1 ? "end" : "middle"} className="fill-ink-3 text-[11px]">
+                  <text key={i} x={X(i)} y={height - 6} textAnchor={i === 0 && p.data.length > 1 ? "start" : i === p.data.length - 1 ? "end" : "middle"} className="fill-ink-3 text-micro">
                     {xl(r)}
                   </text>
                 )
@@ -314,7 +314,7 @@ export function LineChart({ area = false, ...p }: PlotProps & { area?: boolean }
               cur.i === null &&
               p.series.length <= 4 &&
               (() => {
-                /* etiquetas que chocarían (< 16px) no se apilan: se omiten y quedan en tooltip y tabla */
+                /* etiquetas que chocarían (< 20px) no se apilan: se omiten y quedan en tooltip y tabla */
                 const placed: number[] = [];
                 const last = p.data[p.data.length - 1] ?? {};
                 return [...p.series]
@@ -323,10 +323,10 @@ export function LineChart({ area = false, ...p }: PlotProps & { area?: boolean }
                   .map((s) => {
                     const v = last[s.key] as number;
                     const y = Y(v) - 9;
-                    if (placed.some((py) => Math.abs(py - y) < 16)) return null;
+                    if (placed.some((py) => Math.abs(py - y) < 20)) return null;
                     placed.push(y);
                     return (
-                      <text key={s.key} x={X(p.data.length - 1) - 8} y={y} textAnchor="end" className="fill-ink-2 text-[11px] font-medium tabular-nums">
+                      <text key={s.key} x={X(p.data.length - 1) - 8} y={y} textAnchor="end" className="fill-ink-2 text-micro font-medium tabular-nums">
                         {fmt.value(v)}
                       </text>
                     );
@@ -397,7 +397,7 @@ export function BarChart({ stacked = false, ...p }: PlotProps & { stacked?: bool
             {ticks.map((t) => (
               <g key={t}>
                 <line x1={PAD.left} x2={width - PAD.right} y1={Y(t)} y2={Y(t)} stroke={t === 0 ? "var(--chart-axis)" : "var(--chart-grid)"} strokeWidth={1} shapeRendering="crispEdges" />
-                <text x={PAD.left - 8} y={Y(t)} dy="0.32em" textAnchor="end" className="fill-ink-3 text-[11px] tabular-nums">
+                <text x={PAD.left - 8} y={Y(t)} dy="0.32em" textAnchor="end" className="fill-ink-3 text-micro tabular-nums">
                   {fmt.tick(t, y1)}
                 </text>
               </g>
@@ -421,7 +421,7 @@ export function BarChart({ stacked = false, ...p }: PlotProps & { stacked?: bool
                     return <path key={s.key} d={bar(x0, Y(v), Y(0), bw, true)} fill={color(s, k)} pointerEvents="none" />;
                   })}
                   {(i % step === 0 || p.data.length <= 12) && (
-                    <text x={cx} y={height - 6} textAnchor="middle" className="fill-ink-3 text-[11px]">
+                    <text x={cx} y={height - 6} textAnchor="middle" className="fill-ink-3 text-micro">
                       {xl(r)}
                     </text>
                   )}

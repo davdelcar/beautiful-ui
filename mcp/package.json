@@ -1,6 +1,6 @@
 {
   "name": "beautiful-ui-mcp",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Servidor MCP y skill del sistema de diseño Beautiful UI.",
   "license": "MIT",
   "type": "module",

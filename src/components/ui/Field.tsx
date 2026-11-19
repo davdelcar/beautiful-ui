@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 /* Campos de texto: pozo `bg-field` con borde `line` (igual que el composer de
  * ChatComposer); al enfocar se eleva a `surface` con anillo de acento. */
-export const fieldBase = `w-full min-w-0 rounded-control border border-line bg-field text-[13px] text-ink
+export const fieldBase = `w-full min-w-0 rounded-control border border-line bg-field text-body text-ink
   shadow-[0_1px_2px_rgba(0,0,0,0.035)] outline-none placeholder:text-ink-3
   transition-[border-color,box-shadow,background-color] duration-150
   hover:border-line-strong
@@ -71,17 +71,17 @@ export function Field({
   return (
     <div className={cn("flex min-w-0 flex-col gap-1.5", className)}>
       {label && (
-        <label htmlFor={id} className="text-[12.5px] font-medium text-ink-2">
+        <label htmlFor={id} className="text-label font-medium text-ink-2">
           {label}
         </label>
       )}
       {children(id)}
       {error ? (
-        <span className="text-[12px] text-red" style={{ animation: "fade-in 150ms ease-out both" }}>
+        <span className="text-meta text-red" style={{ animation: "fade-in 150ms ease-out both" }}>
           {error}
         </span>
       ) : (
-        hint && <span className="text-[12px] text-ink-3">{hint}</span>
+        hint && <span className="text-meta text-ink-3">{hint}</span>
       )}
     </div>
   );

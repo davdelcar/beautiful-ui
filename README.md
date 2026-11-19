@@ -4,7 +4,7 @@
 
 Sistema de diseño completo para apps en React, basado en [beautifului.dev](https://www.beautifului.dev/). Usa **los componentes oficiales de la librería** (los 20 de IA, sus átomos y su fundación) y añade todo lo necesario para construir cualquier app: kit de formularios, fechas, tablas, overlays, navegación y gráficas; validación con zod; plantillas de página; tokens con contraste AA; acentos de marca; i18n; tests y versiones.
 
-React 19 · Tailwind CSS v4 · TypeScript · v2.0.0
+React 19 · Tailwind CSS v4 · TypeScript · v2.1.0
 
 - **Galería:** https://davdelcar.github.io/beautiful-ui/ — app de ejemplo en `#/app`, plantillas en `#plantillas`
 - **Registro shadcn:** https://davdelcar.github.io/beautiful-ui/r/registry.json
@@ -20,7 +20,7 @@ npx shadcn@latest init        # solo si el proyecto aún no tiene components.jso
 npx shadcn@latest add https://davdelcar.github.io/beautiful-ui/r/all.json         # todo
 npx shadcn@latest add https://davdelcar.github.io/beautiful-ui/r/ui-kit.json      # solo el kit
 npx shadcn@latest add https://davdelcar.github.io/beautiful-ui/r/login-page.json  # una plantilla
-npx shadcn@latest add https://davdelcar.github.io/beautiful-ui/r/v2.0.0/all.json  # versión fijada
+npx shadcn@latest add https://davdelcar.github.io/beautiful-ui/r/v2.1.0/all.json  # versión fijada
 ```
 
 Después:
@@ -55,7 +55,7 @@ Cada item arrastra solo lo que necesita (dependencias npm e items). Para actuali
 ## Usarlo desde tus agentes (skill + MCP)
 
 ```bash
-npx -y https://davdelcar.github.io/beautiful-ui/mcp/beautiful-ui-mcp-2.0.0.tgz install
+npx -y https://davdelcar.github.io/beautiful-ui/mcp/beautiful-ui-mcp-2.1.0.tgz install
 # --skill-only | --mcp-only   ·   uninstall para quitarlo
 ```
 
@@ -65,7 +65,7 @@ Instala la **skill** `beautiful-ui` en `~/.claude/skills`, `~/.codex/skills` y `
 
 - **Skill** ([`mcp/skill/SKILL.md`](mcp/skill/SKILL.md)): instalación, reglas, tokens, API completa del kit, gráficas, formularios, plantillas, componentes de IA, composición y checklist.
 - **MCP** ([`mcp/server.mjs`](mcp/server.mjs), sin dependencias, lee el registro en vivo): `list_components`, `get_component`, `get_design_tokens`, `get_install_instructions`, `get_guidelines`, `get_example` (app, galería y las 6 plantillas) y el prompt `beautiful-ui`.
-- Otros clientes MCP: `{ "mcpServers": { "beautiful-ui": { "command": "npx", "args": ["-y", "https://davdelcar.github.io/beautiful-ui/mcp/beautiful-ui-mcp-2.0.0.tgz"] } } }`
+- Otros clientes MCP: `{ "mcpServers": { "beautiful-ui": { "command": "npx", "args": ["-y", "https://davdelcar.github.io/beautiful-ui/mcp/beautiful-ui-mcp-2.1.0.tgz"] } } }`
 
 ## El kit (`@/components/ui`)
 
@@ -97,7 +97,7 @@ Cada sección de la galería tiene un botón **«</> Código»** con ejemplo cop
 
 ```bash
 npm test            # vitest: lógica y componentes (teclado, filtros, orden, validación)
-npm run test:e2e    # Playwright sobre la build: 8 rutas × claro/oscuro con axe + flujos clave
+npm run test:e2e    # Playwright sobre la build: axe en 8 rutas × claro/oscuro, solapes a 390/768/1280 px, desplegables y flujos clave
 ```
 
 El workflow ejecuta ambos antes de publicar; si fallan, no se despliega.

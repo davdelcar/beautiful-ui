@@ -1,11 +1,10 @@
 import { useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { IconCheck, IconChevronDown, IconSearch } from "./icons";
+import { Floating } from "./floating";
+import { IconCheck, IconSearch } from "./icons";
 import { matches, useListNav } from "./listbox";
-import { usePopover } from "./Overlay";
+import { Chevron, TRIGGER, usePopover } from "./Overlay";
 import { useLabels } from "./i18n";
-
-const POP = "pop-in 180ms cubic-bezier(0.23,1,0.32,1) both";
 
 /* ── Popover ───────────────────────────────────────────── */
 
@@ -30,32 +29,23 @@ export function Popover({
   width?: number | "trigger";
   className?: string;
 }) {
-  const { open, setOpen, ref } = usePopover();
-  const close = () => setOpen(false);
+  const { open, setOpen, ref, panelRef, focusTrigger } = usePopover();
+  const close = () => (setOpen(false), focusTrigger());
   return (
     <div ref={ref} className="relative inline-flex">
       {trigger({ open, toggle: () => setOpen((o) => !o) })}
-      {open && (
-        <div
-          role="dialog"
-          className={cn(
-            "bui-pop absolute z-40 rounded-card bg-surface p-3 text-body text-ink shadow-overlay",
-            side === "bottom" ? "top-full mt-1.5" : "bottom-full mb-1.5",
-            align === "start" && "left-0",
-            align === "end" && "right-0",
-            align === "center" && "left-1/2 -translate-x-1/2",
-            width === "trigger" && "right-0 left-0",
-            className,
-          )}
-          style={{
-            width: width === "trigger" ? undefined : `min(${width}px, calc(100vw - 32px))`,
-            animation: POP,
-            transformOrigin: `${side === "bottom" ? "top" : "bottom"} ${align === "end" ? "right" : align === "center" ? "center" : "left"}`,
-          }}
-        >
-          {typeof children === "function" ? children(close) : children}
-        </div>
-      )}
+      <Floating
+        anchor={ref}
+        open={open}
+        side={side}
+        align={align}
+        width={width}
+        panelRef={panelRef}
+        role="dialog"
+        className={cn("overflow-y-auto rounded-card bg-surface p-3 text-body text-ink shadow-overlay", className)}
+      >
+        {typeof children === "function" ? children(close) : children}
+      </Floating>
     </div>
   );
 }
@@ -85,7 +75,11 @@ export function Combobox<T extends string>({
   searchPlaceholder,
   emptyText,
   className,
+  id,
+  "aria-label": ariaLabel,
 }: {
+  id?: string;
+  "aria-label"?: string;
   value: T | null;
   onChange: (value: T) => void;
   options: ComboboxOption<T>[];
@@ -94,7 +88,7 @@ export function Combobox<T extends string>({
   emptyText?: ReactNode;
   className?: string;
 }) {
-  const { open, setOpen, ref } = usePopover();
+  const { open, setOpen, ref, panelRef } = usePopover();
   const L = useLabels();
   const [query, setQuery] = useState("");
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -119,6 +113,8 @@ export function Combobox<T extends string>({
     <div ref={ref} className={cn("relative", className)}>
       <button
         ref={triggerRef}
+        id={id}
+        aria-label={ariaLabel}
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -129,21 +125,16 @@ export function Combobox<T extends string>({
             toggle();
           }
         }}
-        className="flex h-8 w-full items-center justify-between gap-2 rounded-control bg-surface pr-2 pl-2.5 text-body
-          shadow-btn transition-[background-color,box-shadow] duration-150 hover:bg-inset aria-expanded:shadow-[0_0_0_1px_var(--accent),0_0_0_4px_var(--accent-tint)]"
+        className={TRIGGER}
       >
         <span className={cn("flex min-w-0 items-center gap-2", current ? "text-ink" : "text-ink-3")}>
           {current?.icon && <span className="flex shrink-0 text-ink-3">{current.icon}</span>}
           <span className="truncate">{current?.label ?? placeholder ?? L.select}</span>
         </span>
-        <IconChevronDown size={13} className="shrink-0 text-ink-3 transition-transform duration-200" style={{ transform: open ? "rotate(180deg)" : undefined }} />
+        <Chevron open={open} />
       </button>
 
-      {open && (
-        <div
-          className="bui-pop absolute top-full right-0 left-0 z-40 mt-1.5 min-w-56 overflow-hidden rounded-card bg-surface shadow-overlay"
-          style={{ animation: POP, transformOrigin: "top center" }}
-        >
+      <Floating anchor={ref} open={open} width="trigger" panelRef={panelRef} className="flex min-w-56 flex-col overflow-hidden rounded-card bg-surface shadow-overlay">
           <div className="flex items-center gap-2 border-b border-line px-2.5">
             <IconSearch size={14} className="shrink-0 text-ink-3" />
             <input
@@ -163,7 +154,7 @@ export function Combobox<T extends string>({
               className="h-9 min-w-0 flex-1 bg-transparent text-body text-ink outline-none placeholder:text-ink-3 focus-visible:shadow-none"
             />
           </div>
-          <div id={nav.listId} role="listbox" className="max-h-64 overflow-y-auto p-1">
+          <div id={nav.listId} role="listbox" className="max-h-64 min-h-0 flex-1 overflow-y-auto p-1">
             {visible.length === 0 && <div className="px-2 py-6 text-center text-meta text-ink-3">{emptyText ?? L.noResults}</div>}
             {visible.map((o, i) => (
               <div
@@ -186,8 +177,7 @@ export function Combobox<T extends string>({
               </div>
             ))}
           </div>
-        </div>
-      )}
+      </Floating>
     </div>
   );
 }

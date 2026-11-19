@@ -464,7 +464,7 @@ const form = useZodForm(schema, { defaultValues: { email: "", plan: "" } });
   <FormSubmit>Guardar</FormSubmit>
 </Form>`,
     props: [
-      P("useZodForm", "(schema, options?)", "useForm + zodResolver, valida al salir del campo."),
+      P("useZodForm", "(schema, options?)", "useForm + zodResolver: valida al enviar y luego en vivo (sin saltos de layout al salir de un campo)."),
       P("FormField.children", "(f) => ReactNode", "f.input para Input/Textarea; f.value/f.onChange para el resto."),
       P("FormSubmit", "{ variant?; size? }", "Spinner y deshabilitado mientras envía."),
       P("FormError", "—", 'Muestra form.setError("root", { message }).'),

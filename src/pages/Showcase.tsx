@@ -26,19 +26,20 @@ export function Showcase({
   const [showDoc, setShowDoc] = useState(false);
   return (
     <section id={id} className="primitive-showcase group flex [counter-increment:showcase] w-full scroll-mt-8 flex-col border-b border-dashed border-line px-5 py-8 sm:px-8 sm:py-10">
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-2 sm:items-baseline">
-          <span aria-hidden className="mt-0.5 font-mono text-[11px] text-ink-3 tabular-nums before:content-[counter(showcase,decimal-leading-zero)] sm:mt-0" />
+      {/* en estrecho, los controles bajan a su propia línea en vez de pisar el título */}
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+        <div className="flex min-w-0 flex-[1_1_16rem] items-start gap-2 sm:items-baseline">
+          <span aria-hidden className="mt-0.5 font-mono text-micro text-ink-3 tabular-nums before:content-[counter(showcase,decimal-leading-zero)] sm:mt-0" />
           <div className="min-w-0 sm:flex sm:items-baseline sm:gap-2">
-            <h2 className="text-[13px] font-semibold whitespace-nowrap text-ink">{title}</h2>
-            <p className="mt-0.5 text-[12.5px] text-pretty text-ink-3 sm:mt-0">{desc}</p>
+            <h2 className="text-body font-semibold text-ink sm:whitespace-nowrap">{title}</h2>
+            <p className="mt-0.5 text-label text-pretty text-ink-3 sm:mt-0">{desc}</p>
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1.5">
           {controls}
           {doc && (
             <Button size="xs" variant={showDoc ? "ghost" : "quiet"} aria-expanded={showDoc} onClick={() => setShowDoc((v) => !v)}>
-              <span className="font-mono text-[11px]">&lt;/&gt;</span> Código
+              <span className="font-mono text-micro">&lt;/&gt;</span> Código
             </Button>
           )}
         </div>

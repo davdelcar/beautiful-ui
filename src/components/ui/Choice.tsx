@@ -27,7 +27,7 @@ export function Checkbox({
 }) {
   const on = checked || indeterminate;
   return (
-    <label className={cn("group inline-flex items-center gap-2 text-[13px] text-ink", disabled && "opacity-50", className)}>
+    <label className={cn("group inline-flex items-center gap-2 text-body text-ink", disabled && "opacity-50", className)}>
       <input
         type="checkbox"
         className="peer sr-only"
@@ -74,7 +74,7 @@ export function RadioGroup<T extends string>({
       {options.map((o) => {
         const on = o.value === value;
         return (
-          <label key={o.value} className={cn("group inline-flex items-center gap-2 text-[13px] text-ink", o.disabled && "opacity-50")}>
+          <label key={o.value} className={cn("group inline-flex items-center gap-2 text-body text-ink", o.disabled && "opacity-50")}>
             <input type="radio" name={name} className="peer sr-only" checked={on} disabled={o.disabled} onChange={() => onChange(o.value)} />
             <span
               aria-hidden
@@ -111,7 +111,7 @@ export function Switch({
   "aria-label"?: string;
 }) {
   return (
-    <label className={cn("inline-flex items-center gap-2 text-[13px] text-ink", disabled && "opacity-50", className)}>
+    <label className={cn("inline-flex items-center gap-2 text-body text-ink", disabled && "opacity-50", className)}>
       <input type="checkbox" role="switch" className="peer sr-only" aria-label={ariaLabel} checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
       <span
         aria-hidden

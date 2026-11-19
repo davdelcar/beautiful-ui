@@ -140,7 +140,7 @@ export function Stepper({
             className={cn(
               "flex size-6 shrink-0 items-center justify-center rounded-full text-micro font-medium tabular-nums transition-[background-color,box-shadow,color] duration-300",
               state === "done" && "bg-accent text-white",
-              state === "current" && "bg-surface text-accent-ink shadow-[0_0_0_1.5px_var(--accent),0_0_0_4px_var(--accent-tint)]",
+              state === "current" && "bg-surface text-accent-ink shadow-[0_0_0_1.5px_var(--accent),0_0_0_3px_var(--accent-tint)]",
               state === "todo" && "bg-surface text-ink-3 shadow-btn",
             )}
           >

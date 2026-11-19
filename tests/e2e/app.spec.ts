@@ -72,7 +72,7 @@ test("alta: no avanza sin datos y sí con ellos", async ({ page }) => {
   await expect(page.getByText("Nombre de la empresa").last()).toBeVisible();
   await expect(page.getByRole("alert").first()).toBeVisible();
   await page.getByLabel(/nombre de la empresa/i).fill("Acme");
-  await page.getByRole("button", { name: /elige un país/i }).click();
+  await page.getByLabel("País").click();
   await page.keyboard.type("peru");
   await page.keyboard.press("Enter");
   await page.getByRole("button", { name: /continuar/i }).click();

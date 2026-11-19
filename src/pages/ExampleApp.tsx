@@ -170,7 +170,7 @@ function Dashboard() {
   ];
 
   return (
-    <div className="mx-auto flex max-w-[1080px] flex-col gap-4 p-4 sm:p-6">
+    <div className="mx-auto flex max-w-[1080px] flex-col gap-4 p-4 @xl:p-6">
       <div className="flex flex-wrap items-end justify-between gap-3" style={{ animation: "fade-up 500ms cubic-bezier(0.23,1,0.32,1) both" }}>
         <div>
           <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-ink">Buenos días, Ana</h1>
@@ -187,21 +187,21 @@ function Dashboard() {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" style={{ animation: "fade-up 500ms cubic-bezier(0.23,1,0.32,1) 60ms both" }}>
+      <div className="grid grid-cols-2 gap-3 @2xl:grid-cols-4" style={{ animation: "fade-up 500ms cubic-bezier(0.23,1,0.32,1) 60ms both" }}>
         <Stat label="Ingresos" value="$48,210" delta="+12.4%" trend="up" />
         <Stat label="Pedidos" value="1,284" delta="+4.0%" trend="up" />
         <Stat label="Ticket medio" value="$37.55" delta="−1.8%" trend="down" />
         <Stat label="Stock crítico" value="7" delta="SKUs" />
       </div>
 
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]" style={{ animation: "fade-up 500ms cubic-bezier(0.23,1,0.32,1) 120ms both" }}>
-        <Card className="primitive-card-pad flex justify-center">
+      <div className="grid gap-3 @4xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]" style={{ animation: "fade-up 500ms cubic-bezier(0.23,1,0.32,1) 120ms both" }}>
+        <Card className="primitive-card-pad flex justify-center [&>*]:max-w-none [&>*]:min-w-0">
           <InsightCards />
         </Card>
         <div className="flex flex-col gap-3">
           <Card>
             <CardHeader title="Actividad del agente" icon={<IconSparkle className="text-accent" />} />
-            <div className="primitive-card-pad flex justify-center">
+            <div className="primitive-card-pad flex justify-center [&>*]:max-w-none">
               <TaskRows rows={TASKS} labels={{ completed: "Completada", failed: "Fallida" }} className="w-full" />
             </div>
           </Card>
@@ -414,7 +414,7 @@ export default function ExampleApp() {
             <Button size="sm" className="whitespace-nowrap">Sistema de diseño</Button>
           </a>
         </header>
-        <main className="flex-1 overflow-y-auto bg-canvas">
+        <main className="@container flex-1 overflow-y-auto bg-canvas">
           <Dashboard />
         </main>
       </div>

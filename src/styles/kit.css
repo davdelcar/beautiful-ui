@@ -9,7 +9,8 @@
    * text-heading  título de card/diálogo  15px
    * text-lead     párrafo destacado       15px
    * text-body     texto base de la UI     13px
-   * text-meta     secundario, tablas      12px
+   * text-label    etiquetas, cabeceras    12.5px
+ * text-meta     secundario, tablas      12px
    * text-micro    pies, contadores        11px
    * text-overline etiqueta de grupo       10.5px (añade `uppercase`) */
   --text-display: 32px;
@@ -32,6 +33,10 @@
 
   --text-body: 13px;
   --text-body--line-height: 1.5;
+
+  /* etiquetas de campo, cabeceras de tabla, pills */
+  --text-label: 12.5px;
+  --text-label--line-height: 1.4;
 
   --text-meta: 12px;
   --text-meta--line-height: 1.45;
@@ -313,5 +318,14 @@ dialog.bui-dialog::backdrop {
 @media (prefers-reduced-motion: reduce) {
   .bui-collapse {
     transition: none;
+  }
+}
+
+/* entrada de Dialog y paleta: termina SIN transform, para que los paneles
+ * flotantes (position: fixed) dentro del diálogo no queden atrapados por él */
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
   }
 }

@@ -38,7 +38,7 @@ export function Segmented<T extends string>({
       {box && (
         <span
           aria-hidden
-          className="absolute inset-y-0.5 rounded-[6px] bg-surface shadow-btn"
+          className="absolute inset-y-0.5 rounded-chip bg-surface shadow-btn"
           style={{ left: box.left, width: box.width, transition: `left 300ms ${EASE}, width 300ms ${EASE}` }}
         />
       )}
@@ -53,13 +53,13 @@ export function Segmented<T extends string>({
             aria-selected={on}
             onClick={() => onChange(o.value)}
             className={cn(
-              "relative z-10 flex items-center justify-center gap-1.5 rounded-[6px] font-medium transition-colors duration-200",
-              size === "sm" ? "h-6 px-2 text-[12px]" : "h-7 px-2.5 text-[12.5px]",
+              "relative z-10 flex items-center justify-center gap-1.5 rounded-chip font-medium transition-colors duration-200",
+              size === "sm" ? "h-6 px-2 text-meta" : "h-7 px-2.5 text-label",
               on ? "text-ink" : "text-ink-3 hover:text-ink-2",
             )}
           >
             {o.label}
-            {o.count !== undefined && <span className="text-[10.5px] tabular-nums text-ink-3">{o.count}</span>}
+            {o.count !== undefined && <span className="text-micro tabular-nums text-ink-3">{o.count}</span>}
           </button>
         );
       })}
@@ -93,13 +93,13 @@ export function Tabs<T extends string>({
             aria-selected={on}
             onClick={() => onChange(o.value)}
             className={cn(
-              "relative flex h-9 items-center gap-1.5 px-2 text-[13px] font-medium transition-colors duration-150",
+              "relative flex h-9 items-center gap-1.5 px-2 text-body font-medium transition-colors duration-150",
               on ? "text-ink" : "text-ink-3 hover:text-ink-2",
             )}
           >
             {o.label}
             {o.count !== undefined && (
-              <span className={cn("rounded-[4px] px-1 text-[10.5px] tabular-nums", on ? "bg-field text-ink-2" : "text-ink-3")}>
+              <span className={cn("rounded-[4px] px-1 text-micro tabular-nums", on ? "bg-field text-ink-2" : "text-ink-3")}>
                 {o.count}
               </span>
             )}
@@ -139,14 +139,14 @@ export function FilterChips<T extends string>({
             type="button"
             aria-pressed={active}
             onClick={() => onChange(f.value)}
-            className={`flex h-6.5 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[12px]
+            className={`flex h-6.5 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-meta
               font-medium transition-[background-color,box-shadow,color] duration-200
               ${active ? "bg-surface text-ink shadow-btn" : "text-ink-2 hover:bg-hover"}`}
           >
             {f.dot && <span className="size-1.5 rounded-full" style={{ background: f.dot }} />}
             {f.label}
             {f.count !== undefined && (
-              <span className={`rounded-[4px] px-1 text-[10.5px] tabular-nums ${active ? "bg-field text-ink-2" : "text-ink-3"}`}>
+              <span className={`rounded-[4px] px-1 text-micro tabular-nums ${active ? "bg-field text-ink-2" : "text-ink-3"}`}>
                 {f.count}
               </span>
             )}
