@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/). Cada versión tiene su registro fijo en `https://davdelcar.github.io/beautiful-ui/r/vX.Y.Z/`.
 
+## 2.1.1 — 2026-11-20
+
+### Corregido
+- **MCP: URLs de versiones anteriores**: cada despliegue borraba los tarballs viejos (`beautiful-ui-mcp-2.0.0.tgz` daba 404 y el MCP dejaba de arrancar en los agentes que lo tenían registrado). CI publica ahora el tarball de cada etiqueta.
+- **Instalador en Windows**: `claude`/`codex` son `.cmd` y no se podían lanzar sin shell; el MCP se registra como `cmd /c npx …`, como exigen los clientes MCP en Windows.
+
 ## 2.1.0 — 2026-11-19
 
 Revisión completa de coherencia visual y solapes.

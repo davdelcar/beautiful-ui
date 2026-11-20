@@ -274,9 +274,11 @@ function has(cmd) {
     return false;
   }
 }
+const WIN = process.platform === "win32";
 function run(cmd, args) {
   try {
-    execFileSync(cmd, args, { stdio: "pipe" });
+    /* en Windows claude/codex suelen ser .cmd: sin shell, Node no puede lanzarlos */
+    execFileSync(cmd, args, { stdio: "pipe", shell: WIN });
     return true;
   } catch (e) {
     return String(e.stderr || e.message).trim().split("\n")[0];
@@ -287,7 +289,8 @@ async function install() {
   const args = process.argv.slice(3);
   const onlySkill = args.includes("--skill-only");
   const onlyMcp = args.includes("--mcp-only");
-  const launch = ["npx", "-y", TARBALL];
+  /* en Windows npx es npx.cmd: los clientes MCP necesitan lanzarlo vía cmd /c */
+  const launch = WIN ? ["cmd", "/c", "npx", "-y", TARBALL] : ["npx", "-y", TARBALL];
 
   if (!onlyMcp) {
     const text = await skillText();
@@ -310,7 +313,7 @@ async function install() {
       console.log(r === true ? "✓ MCP registrado en Codex" : `✗ Codex: ${r}`);
     }
     console.log(`\nOtros clientes MCP (Cursor, VS Code, Claude Desktop…):\n${JSON.stringify(
-      { mcpServers: { "beautiful-ui": { command: "npx", args: launch.slice(1) } } },
+      { mcpServers: { "beautiful-ui": { command: launch[0], args: launch.slice(1) } } },
       null,
       2,
     )}`);

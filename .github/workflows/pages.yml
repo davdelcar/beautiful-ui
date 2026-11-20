@@ -53,6 +53,13 @@ jobs:
               (cd "$dir" && REGISTRY_URL="$BASE_URL/r/$tag" REGISTRY_OUT="$GITHUB_WORKSPACE/dist/r/$tag" node scripts/build-registry.mjs > /dev/null)
               echo "✓ $tag"
             fi
+            # tarball del MCP de esa versión: las URLs ya registradas en agentes siguen funcionando
+            ver="${tag#v}"
+            if [ -f "$dir/mcp/package.json" ] && [ ! -f "dist/mcp/beautiful-ui-mcp-$ver.tgz" ]; then
+              f=$(npm pack "$dir/mcp" --pack-destination dist/mcp --silent | tail -1)
+              [ "$f" = "beautiful-ui-mcp-$ver.tgz" ] || mv "dist/mcp/$f" "dist/mcp/beautiful-ui-mcp-$ver.tgz"
+              echo "✓ MCP $ver"
+            fi
             git worktree remove --force "$dir"
           done
 

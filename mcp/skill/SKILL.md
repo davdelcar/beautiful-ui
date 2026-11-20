@@ -8,7 +8,7 @@ description: Sistema de diseño Beautiful UI (React 19 + Tailwind v4, registro s
 Sistema de diseño para apps: lienzo frío casi blanco, cards blancas con borde hairline, sombras suaves en capas, tinta neutra y color semántico con moderación. Claro/oscuro, 5 acentos, contraste WCAG AA verificado con axe, textos en español o inglés.
 
 - Galería: https://davdelcar.github.io/beautiful-ui/ · app: `#/app` · plantillas: `#/plantillas/<login|listado|analitica|ajustes|alta|error>`
-- Registro shadcn: https://davdelcar.github.io/beautiful-ui/r/registry.json (versionado: `/r/v2.1.0/<item>.json`)
+- Registro shadcn: https://davdelcar.github.io/beautiful-ui/r/registry.json (versionado: `/r/v2.1.1/<item>.json`)
 - Tokens DTCG: https://davdelcar.github.io/beautiful-ui/tokens.json · Código: https://github.com/davdelcar/beautiful-ui
 
 Con el MCP `beautiful-ui` conectado, no adivines la API: `list_components`, `get_component <item>` (fuente + firmas), `get_design_tokens`, `get_install_instructions`, `get_example <app|login|listado|analitica|ajustes|alta|error>`.
