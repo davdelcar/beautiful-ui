@@ -30,6 +30,7 @@ jobs:
 
       # Pruebas unitarias (vitest) antes de nada
       - run: npm test
+      - run: npm run test:next
 
       - id: pages
         uses: actions/configure-pages@v5
@@ -50,6 +51,7 @@ jobs:
             dir="$RUNNER_TEMP/$tag"
             git worktree add -q "$dir" "$tag"
             if [ -f "$dir/scripts/build-registry.mjs" ] && grep -q REGISTRY_OUT "$dir/scripts/build-registry.mjs"; then
+              ln -s "$GITHUB_WORKSPACE/node_modules" "$dir/node_modules"
               (cd "$dir" && REGISTRY_URL="$BASE_URL/r/$tag" REGISTRY_OUT="$GITHUB_WORKSPACE/dist/r/$tag" node scripts/build-registry.mjs > /dev/null)
               echo "✓ $tag"
             fi

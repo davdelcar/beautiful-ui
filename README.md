@@ -4,7 +4,7 @@
 
 Sistema de diseño completo para apps en React, basado en [beautifului.dev](https://www.beautifului.dev/). Usa **los componentes oficiales de la librería** (los 20 de IA, sus átomos y su fundación) y añade todo lo necesario para construir cualquier app: kit de formularios, fechas, tablas, overlays, navegación y gráficas; validación con zod; plantillas de página; tokens con contraste AA; acentos de marca; i18n; tests y versiones.
 
-React 19 · Tailwind CSS v4 · TypeScript · v2.1.1
+React 19 · Tailwind CSS v4 · TypeScript · v2.2.0
 
 - **Galería:** https://davdelcar.github.io/beautiful-ui/ — app de ejemplo en `#/app`, plantillas en `#plantillas`
 - **Registro shadcn:** https://davdelcar.github.io/beautiful-ui/r/registry.json
@@ -20,7 +20,7 @@ npx shadcn@latest init        # solo si el proyecto aún no tiene components.jso
 npx shadcn@latest add https://davdelcar.github.io/beautiful-ui/r/all.json         # todo
 npx shadcn@latest add https://davdelcar.github.io/beautiful-ui/r/ui-kit.json      # solo el kit
 npx shadcn@latest add https://davdelcar.github.io/beautiful-ui/r/login-page.json  # una plantilla
-npx shadcn@latest add https://davdelcar.github.io/beautiful-ui/r/v2.1.1/all.json  # versión fijada
+npx shadcn@latest add https://davdelcar.github.io/beautiful-ui/r/v2.2.0/all.json  # versión fijada
 ```
 
 Después:
@@ -46,6 +46,7 @@ import LoginPage from "@/components/blocks/LoginPage";
 | `ui-kit` | El kit completo de `@/components/ui` (abajo) |
 | `form` | `Form`, `FormField`, `FormSubmit`, `FormError`, `useZodForm` (react-hook-form + zod) |
 | `login-page` · `list-detail-page` · `analytics-page` · `settings-page` · `wizard-page` · `error-page` | Plantillas de página |
+| `chat-recipe` | Chat con historial, envío, carga y error controlados por la aplicación |
 | `button` · `entity-chip` · `value-pill` · `shimmer` · `stream-text` · `glide-menu` | Átomos oficiales |
 | `approval-card` · `chat-composer` · `code-block` · `context-cards` · `diff-table` · `filter-table` · `fine-tune-card` · `flowchart` · `insight-cards` · `loading-state` · `prompt-bar` · `recommendation-card` · `records-table` · `search` · `selection-actions` · `sidebar-nav` · `streaming-text` · `task-rows` · `thinking-state` · `tool-chips` | Los 20 componentes oficiales de IA |
 | `utils` · `central-icons` | `cn()` y el sustituto de los iconos de SidebarNav |
@@ -55,7 +56,7 @@ Cada item arrastra solo lo que necesita (dependencias npm e items). Para actuali
 ## Usarlo desde tus agentes (skill + MCP)
 
 ```bash
-npx -y https://davdelcar.github.io/beautiful-ui/mcp/beautiful-ui-mcp-2.1.1.tgz install
+npx -y https://davdelcar.github.io/beautiful-ui/mcp/beautiful-ui-mcp-2.2.0.tgz install
 # --skill-only | --mcp-only   ·   uninstall para quitarlo
 ```
 
@@ -65,7 +66,11 @@ Instala la **skill** `beautiful-ui` en `~/.claude/skills`, `~/.codex/skills` y `
 
 - **Skill** ([`mcp/skill/SKILL.md`](mcp/skill/SKILL.md)): instalación, reglas, tokens, API completa del kit, gráficas, formularios, plantillas, componentes de IA, composición y checklist.
 - **MCP** ([`mcp/server.mjs`](mcp/server.mjs), sin dependencias, lee el registro en vivo): `list_components`, `get_component`, `get_design_tokens`, `get_install_instructions`, `get_guidelines`, `get_example` (app, galería y las 6 plantillas) y el prompt `beautiful-ui`.
-- Otros clientes MCP: `{ "mcpServers": { "beautiful-ui": { "command": "npx", "args": ["-y", "https://davdelcar.github.io/beautiful-ui/mcp/beautiful-ui-mcp-2.1.1.tgz"] } } }`. En Windows: `"command": "cmd", "args": ["/c", "npx", "-y", "…"]` (el instalador ya lo hace así).
+- Otros clientes MCP: `{ "mcpServers": { "beautiful-ui": { "command": "npx", "args": ["-y", "https://davdelcar.github.io/beautiful-ui/mcp/beautiful-ui-mcp-2.2.0.tgz"] } } }`. En Windows: `"command": "cmd", "args": ["/c", "npx", "-y", "…"]` (el instalador ya lo hace así).
+
+Para integrar una pantalla, revisa primero los componentes que ya tenga el proyecto. Consulta `get_guidelines({ detail: "quick" })` y busca por nombre de React con `get_component({ name: "Select", include_source: false })` para ver el import, el item a instalar y sus notas de uso. Cuando falten piezas, pasa sus nombres a `get_install_instructions` para obtener el comando y los pasos de configuración. En `get_example`, usa `listado` para filtros, tabla y detalle, `login` para formularios validados y `chat` para una conversación con datos del producto.
+
+Las consultas breves incluyen la declaración de TypeScript y sus tipos auxiliares del mismo archivo. Para items grandes como `ui-kit`, consulta por export, indica `file` o pide todo con `include_source: true`. `get_example({ page: "gallery" })` enumera los archivos de referencia de la galería. Pasa `file: "GalleryMore.tsx"` para abrir uno.
 
 ## El kit (`@/components/ui`)
 
@@ -96,11 +101,12 @@ Cada sección de la galería tiene un botón **«</> Código»** con ejemplo cop
 ## Calidad
 
 ```bash
-npm test            # vitest: lógica y componentes (teclado, filtros, orden, validación)
+npm test            # Vitest: componentes, contratos MCP y compilación desde el registro
+npm run test:next   # instalación shadcn y build de producción en Next.js App Router
 npm run test:e2e    # Playwright sobre la build: axe en 8 rutas × claro/oscuro, solapes a 390/768/1280 px, desplegables y flujos clave
 ```
 
-El workflow ejecuta ambos antes de publicar; si fallan, no se despliega.
+El workflow requiere las tres comprobaciones para publicar.
 
 ## Desarrollo
 

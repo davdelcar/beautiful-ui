@@ -21,6 +21,21 @@ export type Column<T> = {
   sortValue?: (row: T) => string | number | null | undefined;
 };
 
+export function sortTableRows<T>(rows: T[], columns: Column<T>[], sort: SortState) {
+  if (!sort) return rows;
+  const sortValue = columns.find((column) => column.key === sort.key)?.sortValue;
+  if (!sortValue) return rows;
+  const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+  return [...rows].sort((a, b) => {
+    const va = sortValue(a);
+    const vb = sortValue(b);
+    if (va == null) return vb == null ? 0 : 1;
+    if (vb == null) return -1;
+    const comparison = typeof va === "number" && typeof vb === "number" ? va - vb : collator.compare(String(va), String(vb));
+    return sort.dir === "asc" ? comparison : -comparison;
+  });
+}
+
 export function DataTable<T>({
   columns,
   rows,
@@ -60,18 +75,7 @@ export function DataTable<T>({
   const [sortInner, setSortInner] = useState<SortState>(null);
   const sort = sortProp !== undefined ? sortProp : sortInner;
   const setSort = (next: SortState) => (onSortChange ? onSortChange(next) : setSortInner(next));
-  const sortCol = sort && columns.find((c) => c.key === sort.key && c.sortValue);
-  if (sortCol) {
-    const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
-    rows = [...rows].sort((a, b) => {
-      const va = sortCol.sortValue!(a);
-      const vb = sortCol.sortValue!(b);
-      if (va == null) return 1;
-      if (vb == null) return -1;
-      const c = typeof va === "number" && typeof vb === "number" ? va - vb : collator.compare(String(va), String(vb));
-      return sort!.dir === "asc" ? c : -c;
-    });
-  }
+  rows = sortTableRows(rows, columns, sort);
   const selectable = !!selected && !!onSelectedChange;
   const template = [selectable ? "40px" : null, ...columns.map((c) => c.width ?? "minmax(0,1fr)")].filter(Boolean).join(" ");
   const visible = rows.filter(isVisible);
@@ -158,7 +162,11 @@ export function DataTable<T>({
                     )}
                     style={{ gridTemplateColumns: template }}
                     onClick={onRowClick ? (e) => !(e.target as HTMLElement).closest("button,a,input,label") && onRowClick(row) : undefined}
-                    onKeyDown={onRowClick ? (e) => e.key === "Enter" && e.target === e.currentTarget && onRowClick(row) : undefined}
+                    onKeyDown={onRowClick ? (e) => {
+                      if (e.key !== "Enter" || e.target !== e.currentTarget) return;
+                      e.preventDefault();
+                      onRowClick(row);
+                    } : undefined}
                     tabIndex={onRowClick ? 0 : undefined}
                   >
                     {selectable && (

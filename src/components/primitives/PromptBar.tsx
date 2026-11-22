@@ -148,6 +148,8 @@ export default function PromptBar({
   demo = true,
   tall = false,
   placeholder,
+  textOnly = false,
+  disabled = false,
   onSend,
 }: {
   variant?: string;
@@ -156,6 +158,10 @@ export default function PromptBar({
   /** hero sizing: a multi-line input with controls on their own row */
   tall?: boolean;
   placeholder?: string;
+  /** render just the text input and send action */
+  textOnly?: boolean;
+  /** block sending while leaving the draft editable */
+  disabled?: boolean;
   onSend?: (text: string) => void;
 }) {
   const pill = variant === "Pill";
@@ -197,7 +203,8 @@ export default function PromptBar({
   };
 
   const token = dismissed ? null : parseToken(draft);
-  const menu: "at" | "slash" | null = plusOpen ? "at" : token?.kind ?? null;
+  const demoMenu = plusOpen ? "at" : token?.kind ?? null;
+  const menu = textOnly ? null : demoMenu;
   const query = plusOpen ? "" : token?.query ?? "";
 
   const rows: { key: string; name: string; desc: string }[] =
@@ -272,7 +279,7 @@ export default function PromptBar({
       shaderRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [textOnly]);
 
   const celebrate = () => {
     if (sweepingRef.current) return;
@@ -391,7 +398,7 @@ export default function PromptBar({
     inputRef.current?.focus();
   };
 
-  const canSend = draft.trim().length > 0 || attachments.length > 0;
+  const canSend = !disabled && (draft.trim().length > 0 || (!textOnly && attachments.length > 0));
   const send = () => {
     if (!canSend) return;
     onSend?.(draft.trim());
@@ -484,7 +491,7 @@ export default function PromptBar({
       )}
 
       {/* ── model menu ─────────────────────────────────── */}
-      {modelOpen && (
+      {!textOnly && modelOpen && (
         <div
           onMouseLeave={() => setModelHovered(null)}
           className="absolute z-10 w-44 rounded-[10px] bg-surface p-1 shadow-raised"
@@ -538,12 +545,12 @@ export default function PromptBar({
         {/* rainbow glimm sweep — plays across the interior on model change.
             explicit w/h: a <canvas> is a replaced element and won't stretch
             to inset-0 alone, which feeds back into the shader's ResizeObserver. */}
-        <canvas
+        {!textOnly && <canvas
           ref={glimmRef}
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 -z-10 h-full w-full"
           style={{ borderRadius: "inherit" }}
-        />
+        />}
         <span
           ref={measureRef}
           aria-hidden="true"
@@ -552,7 +559,7 @@ export default function PromptBar({
           {draft}
         </span>
 
-        {attachments.length > 0 && (
+        {!textOnly && attachments.length > 0 && (
           <div className={`flex flex-wrap gap-1.5 pt-0.5 ${pill ? "px-1" : "px-0.5"}`}>
             {attachments.map((file, i) => (
               <span
@@ -582,12 +589,12 @@ export default function PromptBar({
         <div
           ref={controlsRef}
           className={`grid items-end gap-x-1 gap-y-1.5 ${
-            wide
+            textOnly ? "grid-cols-[minmax(0,1fr)_28px]" : wide
               ? "grid-cols-[28px_auto_minmax(0,1fr)_28px_28px]"
               : "grid-cols-[28px_minmax(0,1fr)_auto_28px_28px]"
           }`}
         >
-          <button
+          {!textOnly && <button
             type="button"
             aria-label="Add attachments and sources"
             aria-expanded={plusOpen}
@@ -601,7 +608,7 @@ export default function PromptBar({
             } ${plusOpen ? "bg-hover text-ink" : ""} ${wide ? "col-start-1 row-start-2" : "col-start-1 row-start-1"}`}
           >
             <Icon size={16} strokeWidth={2}><path d="M12 5v14M5 12h14" /></Icon>
-          </button>
+          </button>}
 
           <textarea
             ref={inputRef}
@@ -636,15 +643,15 @@ export default function PromptBar({
                 send();
               }
             }}
-            placeholder={listening ? "Listening…" : placeholder ?? "Write a message…"}
+            placeholder={!textOnly && listening ? "Listening…" : placeholder ?? "Write a message…"}
             aria-label="Prompt"
             className={`${tall ? "min-h-[68px] px-2 py-2 text-[14px] leading-5" : "min-h-7 px-1 py-[5px] text-[13px] leading-[18px]"} min-w-0 w-full resize-none bg-transparent text-ink outline-none [overflow-wrap:anywhere] placeholder:text-ink-3 ${
-              wide ? "col-span-full col-start-1 row-start-1" : "col-start-2 row-start-1"
+              textOnly ? "col-start-1 row-start-1" : wide ? "col-span-full col-start-1 row-start-1" : "col-start-2 row-start-1"
             }`}
           />
 
           {/* model picker */}
-          <button
+          {!textOnly && <button
             ref={modelRef}
             type="button"
             aria-expanded={modelOpen}
@@ -661,10 +668,10 @@ export default function PromptBar({
             <span className="text-ink-3">
               <Icon size={11} strokeWidth={2.4}><path d="M6 9l6 6 6-6" /></Icon>
             </span>
-          </button>
+          </button>}
 
           {/* dictation */}
-          <button
+          {!textOnly && <button
             type="button"
             aria-label={listening ? "Stop dictation" : "Start dictation"}
             aria-pressed={listening}
@@ -686,7 +693,7 @@ export default function PromptBar({
             ) : (
               <Icon size={15} strokeWidth={2}><g><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3" /></g></Icon>
             )}
-          </button>
+          </button>}
 
           {/* send — tactile square (round in the pill variant) */}
           <button
@@ -696,7 +703,7 @@ export default function PromptBar({
             onClick={send}
             className={`flex size-7 shrink-0 items-center justify-center transition-[background-color,color,transform] duration-200 enabled:active:scale-[0.94] ${
               pill ? "rounded-full" : "rounded-[8px]"
-            } ${wide ? "col-start-5 row-start-2" : "col-start-5 row-start-1"}`}
+            } ${textOnly ? "col-start-2 row-start-1" : wide ? "col-start-5 row-start-2" : "col-start-5 row-start-1"}`}
             style={{
               background: canSend ? "var(--ink)" : "var(--line-strong)",
               color: canSend ? "var(--surface)" : "var(--ink-2)",

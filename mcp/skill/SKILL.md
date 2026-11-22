@@ -8,26 +8,33 @@ description: Sistema de diseño Beautiful UI (React 19 + Tailwind v4, registro s
 Sistema de diseño para apps: lienzo frío casi blanco, cards blancas con borde hairline, sombras suaves en capas, tinta neutra y color semántico con moderación. Claro/oscuro, 5 acentos, contraste WCAG AA verificado con axe, textos en español o inglés.
 
 - Galería: https://davdelcar.github.io/beautiful-ui/ · app: `#/app` · plantillas: `#/plantillas/<login|listado|analitica|ajustes|alta|error>`
-- Registro shadcn: https://davdelcar.github.io/beautiful-ui/r/registry.json (versionado: `/r/v2.1.1/<item>.json`)
+- Registro shadcn: https://davdelcar.github.io/beautiful-ui/r/registry.json (versionado: `/r/v2.2.0/<item>.json`)
 - Tokens DTCG: https://davdelcar.github.io/beautiful-ui/tokens.json · Código: https://github.com/davdelcar/beautiful-ui
 
-Con el MCP `beautiful-ui` conectado, no adivines la API: `list_components`, `get_component <item>` (fuente + firmas), `get_design_tokens`, `get_install_instructions`, `get_example <app|login|listado|analitica|ajustes|alta|error>`.
+## Flujo de trabajo
+
+1. Revisa `package.json`, `components.json`, el CSS global y los imports existentes. Si el proyecto ya tiene Beautiful UI, usa la API de su código local. La API publicada puede ser más reciente.
+2. Para una pantalla completa, parte de `get_example` con `login`, `listado`, `analitica`, `ajustes`, `alta` o `error`. Usa `chat` para integrar una conversación con datos del producto. Para una sección, elige componentes con `list_components` si aún no sabes qué existe.
+3. Consulta `get_component` con el export que usarás, por ejemplo `Select`, `FormField` o `SearchList`. Pasa `include_source: false` para ver el import, la firma, los tipos auxiliares del archivo y las notas de uso. Usa `file` o `include_source: true` si necesitas la implementación de un item grande. Invoca `get_design_tokens` si necesitas componer estilos propios.
+4. Si faltan componentes, consulta `get_install_instructions` con sus nombres. Configura el CSS y, si instalaste el kit, sus providers y el tema. Conecta los datos y callbacks de la app.
+5. Completa los estados que requiere la interfaz, como carga, vacío y error. Comprueba tipos y compilación. Verifica teclado, foco, contraste en ambos temas y comportamiento en móvil donde corresponda.
 
 ## 1. Instalar
 
-Comprueba si existen `components/beautifui/foundation.css` y `components/ui/index.ts` (bajo `src/` si aplica). Si no:
+Comprueba si existen los componentes que requiere la pantalla. En una base React con Tailwind v4, instala solo los items que falten:
 
 ```bash
 npx shadcn@latest init        # solo si no hay components.json (React + Tailwind v4 + alias @/)
-npx shadcn@latest add https://davdelcar.github.io/beautiful-ui/r/all.json
-# o por partes: ui-kit.json (kit) · form.json (zod) · login-page.json … · prompt-bar.json …
+npx shadcn@latest add https://davdelcar.github.io/beautiful-ui/r/ui-kit.json
+# Otros items según la tarea: form.json, login-page.json, prompt-bar.json…
+# all.json instala la biblioteca completa.
 ```
 
 Pasos a mano, siempre:
 1. **CSS global**: sustituye `@import "tailwindcss";` por `@import "<ruta>/components/beautifui/beautiful-ui.css";` (ya importa Tailwind, la fundación y `kit.css`).
 2. **Fuentes Inter + JetBrains Mono**. Vite: `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">`. Next: `Inter({ variable: "--font-inter" })`, `JetBrains_Mono({ variable: "--font-mono-face" })` en `<html className>`.
-3. **Providers en la raíz**: `<UIProvider locale="es-ES"><ToastProvider>{app}</ToastProvider></UIProvider>`.
-4. **Sin parpadeo de tema**: Next → `<html suppressHydrationWarning><head><ThemeScript /></head>`; Vite → pega `themeScript` en un `<script>` de index.html.
+3. **Providers si instalaste el kit**: importa `UIProvider` y `ToastProvider` desde `@/components/ui` y monta `<UIProvider locale="es-ES"><ToastProvider>{app}</ToastProvider></UIProvider>` en la raíz.
+4. **Tema del kit sin parpadeo**: Next → `<html suppressHydrationWarning><head><ThemeScript /></head>`; Vite → coloca el contenido de `themeScript` en un `<script>` del head de index.html.
 
 Actualizar: el mismo `add` con `--overwrite`. Si `npx shadcn` falla con ENOTEMPTY: `rm -rf ~/.npm/_npx`.
 
@@ -36,13 +43,26 @@ Actualizar: el mismo `add` con `--overwrite`. Si `npx shadcn` falla con ENOTEMPT
 - Importa del kit: `import { … } from "@/components/ui"`; formularios: `@/components/form`; IA: `import X from "@/components/primitives/X"`; plantillas: `@/components/blocks/XPage`.
 - **No edites** `components/atoms`, `components/primitives`, `components/beautifui` (se sobrescriben). Personaliza envolviendo.
 - **Solo tokens**: nada de `bg-white`, `text-gray-500`, `#hex`, `text-[13px]`, `rounded-lg`, `shadow-md`. El modo oscuro sale solo.
-- **Accesibilidad**: `IconButton` siempre con `label`; `Checkbox`/`Switch` sin texto visible → `aria-label`; `Progress` → `label`; nada de botones dentro de botones; textos de ayuda en `text-ink-3` (ya pasa AA, no lo aclares más).
+- **Accesibilidad**: evita anidar botones y usa `text-ink-3` para los textos de ayuda.
 - **Desplegables**: usa `Select`, `Combobox`, `MultiSelect`, `Menu`, `Popover`, `DatePicker`… o, para uno propio, `usePopover()` + `<Floating anchor={ref} open={open} panelRef={panelRef}>`. Se pintan en un portal (dentro del `<dialog>` si lo hay), voltean si no caben y nunca los recorta un `overflow-hidden`; no hagas paneles con `absolute top-full`.
-- **Etiquetas**: dentro de `Field`/`FormField` pasa el id a todo control no nativo (`<Select id={id}>`, `Combobox`, `MultiSelect`, `DatePicker`, `DateRangePicker`); sin etiqueta visible, `aria-label`.
 - **`cn()`** ya conoce los tokens (`text-body`, `rounded-card`, `shadow-card`…). Si usas tu propio `cn`, extiende tailwind-merge con esos grupos o descartará `text-body` al combinarlo con `text-ink`.
 - **Layout**: en zonas cuyo ancho depende de paneles (sidebar, asistente), usa container queries (`@container` + `@2xl:grid-cols-4`) en vez de breakpoints de ventana. Nada de elementos `fixed` encima del contenido salvo overlays y toasts.
-- `IconButton`/`primitive-icon-button` fijan `display`: para ocultarlo por breakpoint, envuélvelo (`<span className="flex md:hidden">…</span>`).
-- Next App Router: los componentes ya llevan `"use client"` donde hace falta; tus páginas con hooks también.
+- `primitive-icon-button` fija `display`. Para ocultarlo por breakpoint, envuélvelo (`<span className="flex md:hidden">…</span>`).
+- Next App Router: los imports públicos de `@/components/ui`, `@/components/form` y las plantillas declaran la frontera cliente. Puedes montar `UIProvider`, `ToastProvider` y `ThemeScript` desde el layout de servidor. Cuando una vista pasa callbacks o render props, define esa vista en un módulo con `"use client"`.
+
+## Notas de uso por componente
+
+- **`Select`** — Para pocas opciones. Usa `value` y `onChange`; dentro de `FormField`, pasa `id={f.id}`. Sin etiqueta visible, pasa `aria-label`.
+- **`Combobox`** — Para buscar entre opciones. Dentro de `FormField`, pasa `id={f.id}`. Sin etiqueta visible, pasa `aria-label`.
+- **`MultiSelect`** — Para elegir varias opciones. Asocia una etiqueta con `Field` o `FormField` y pasa el ID al control.
+- **`DatePicker`, `DateRangePicker`** — Mantén el valor como fecha o rango. Asocia una etiqueta con `Field` o `FormField` y pasa el ID al control.
+- **`Field`, `FormField`** — Conecta al control el ID que entrega el componente. En un `FormField`, usa `f.input` para inputs nativos y `f.value`, `f.onChange`, `f.onBlur` y `f.id` para controles personalizados.
+- **`IconButton`** — Pasa siempre `label` con el nombre de la acción. Para ocultar el botón por breakpoint, aplica la visibilidad a un contenedor.
+- **`Checkbox`, `Switch`** — Usa `aria-label` cuando el control carezca de texto visible.
+- **`Progress`** — Pasa `label` para identificar qué operación está en progreso.
+- **`DataTable`** — Usa `rowKey` estable y `sortValue` en las columnas ordenables. Si paginas, ordena el conjunto filtrado antes de recortarlo y pasa `sort` y `onSortChange`.
+- **`PromptBar`** — Usa `demo={false}` y conecta `onSend` al producto. Usa `textOnly` si tu integración solo envía texto, y `disabled` para bloquear el envío durante una petición.
+- **`StreamingText`** — Usa `loop={false}` y pasa el contenido del producto. Usa `showActions={false}` para mostrar solo el texto. Tu app controla el transporte y el estado de la respuesta.
 
 ## 3. Tokens
 
@@ -82,7 +102,7 @@ const form = useZodForm(schema, { defaultValues: { email: "", plan: "" } });
 <Form form={form} onSubmit={async (v) => save(v)}>
   <FormError />                                   {/* form.setError("root", { message }) */}
   <FormField name="email" label="Email" required>{(f) => <Input {...f.input} />}</FormField>
-  <FormField name="plan" label="Plan">{(f) => <Select value={f.value} onChange={(v) => (f.onChange(v), f.onBlur())} options={…} />}</FormField>
+  <FormField name="plan" label="Plan">{(f) => <Select id={f.id} value={f.value} onChange={(v) => (f.onChange(v), f.onBlur())} options={…} />}</FormField>
   <FormSubmit>Guardar</FormSubmit>
 </Form>
 ```
@@ -123,13 +143,16 @@ Traen datos de demo; pásales los tuyos (`rows`, `questions`, `content`, `labels
 | Pantalla | Item | Incluye |
 |---|---|---|
 | Login / registro | `login-page` | zod, proveedores sociales, error de servidor |
-| Listado + detalle | `list-detail-page` | búsqueda, MultiSelect, DateRangePicker, tabla ordenable y paginada, Sheet de detalle, ContextMenu |
+| Listado + detalle | `list-detail-page` | filtros, tabla ordenable y paginada, Sheet, estados de carga y error, callbacks |
 | Analítica | `analytics-page` | filtros, Stat + sparkline, LineChart, BarChart apilado, SegmentedBar, tabla |
 | Ajustes | `settings-page` | subnav (Select en móvil), formulario de perfil, notificaciones, tema/acento/idioma, zona de peligro |
 | Alta por pasos | `wizard-page` | Stepper, validación por paso (`trigger`), resumen |
 | Errores | `error-page` | 404 / 403 / 500 / mantenimiento |
+| Chat integrado | `chat-recipe` | mensajes del producto, carga, error y envío controlado |
 
 Instala (`npx shadcn add …/r/<item>.json`), móntala en tu ruta y sustituye los datos de ejemplo y los `onSubmit`.
+
+`get_example({ page: "gallery" })` enumera los archivos de referencia de la galería. Usa `file` para abrir uno. Para instalar una pantalla en tu proyecto, elige una de las plantillas de la tabla.
 
 ## 7. Composición
 

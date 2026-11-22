@@ -9,7 +9,7 @@
  *
  * Lee el registro publicado en vivo, así que siempre sirve la última versión.
  * Variables: BEAUTIFUL_UI_URL (por defecto https://davdelcar.github.io/beautiful-ui)
- *            BEAUTIFUL_UI_RAW (por defecto https://raw.githubusercontent.com/davdelcar/beautiful-ui/main)
+ *            BEAUTIFUL_UI_RAW (fuente de app/galería para registros anteriores)
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -33,13 +33,33 @@ async function get(url, as = "json") {
   const hit = cache.get(url);
   if (hit && Date.now() - hit.t < 300_000) return hit.v;
   const res = await fetch(url, { headers: { "user-agent": `beautiful-ui-mcp/${PKG.version}` } });
-  if (!res.ok) throw new Error(`${res.status} al pedir ${url}`);
+  if (!res.ok) throw Object.assign(new Error(`${res.status} al pedir ${url}`), { status: res.status });
   const v = as === "json" ? await res.json() : await res.text();
   cache.set(url, { t: Date.now(), v });
   return v;
 }
 const item = (name) => get(`${REGISTRY}/${encodeURIComponent(name)}.json`);
 const depName = (url) => url.replace(/^.*\//, "").replace(/\.json$/, "");
+const registry = () => get(`${REGISTRY}/registry.json`);
+async function optionalJson(url) {
+  try {
+    return await get(url);
+  } catch (error) {
+    if (error.status !== 404) throw error;
+    return null;
+  }
+}
+const componentIndex = async () => (await optionalJson(`${REGISTRY}/component-index.json`)) ?? {};
+function resolveComponent(name, reg, index) {
+  if (typeof name !== "string" || !name.trim()) throw new Error("Indica el nombre de un componente o item del registro.");
+  const query = name.trim();
+  if (Object.hasOwn(index, query)) return { symbol: query, ...index[query] };
+  const id = query.toLowerCase();
+  if (reg.items.some((i) => i.name === id)) return { item: id, sourceItem: id };
+  const symbol = Object.keys(index).find((key) => key.toLowerCase() === id);
+  if (symbol) return { symbol, ...index[symbol] };
+  throw new Error(`Componente o item desconocido: «${query}». Usa list_components para consultar los IDs y los exports de la biblioteca.`);
+}
 
 async function skillText() {
   try {
@@ -50,12 +70,14 @@ async function skillText() {
 }
 
 /* ── herramientas ─────────────────────────────────────────────────────── */
-const INSTALL_STEPS = `Después de instalar, dos pasos a mano:
-1. CSS global: sustituye \`@import "tailwindcss";\` por \`@import "<ruta relativa>/components/beautifui/beautiful-ui.css";\` (ya importa Tailwind).
-2. Fuentes Inter y JetBrains Mono: <link> de Google Fonts (Inter:wght@400;500;600;700 y JetBrains+Mono:wght@400;500), o con next/font \`variable: "--font-inter"\` y \`variable: "--font-mono-face"\` en <html>.
+const INSTALL_STEPS = `Después de instalar los componentes:
+1. Si instalaste \`foundation\`, sustituye el \`@import "tailwindcss";\` del CSS global por \`@import "<ruta relativa>/components/beautifui/beautiful-ui.css";\` (ya importa Tailwind).
+2. Para la fundación, carga Inter y JetBrains Mono mediante Google Fonts (Inter:wght@400;500;600;700 y JetBrains+Mono:wght@400;500), o con next/font \`variable: "--font-inter"\` y \`variable: "--font-mono-face"\` en <html>.
+3. Si la instalación incluye \`ui-kit\`, importa \`UIProvider\` y \`ToastProvider\` desde \`@/components/ui\`. Monta \`<UIProvider locale="es-ES"><ToastProvider>{app}</ToastProvider></UIProvider>\` en la raíz y elige el idioma del producto. En App Router monta los callbacks y render props en componentes cliente.
+4. Si usas el tema del kit, monta \`<ThemeScript />\` en el head de Next.js (con \`suppressHydrationWarning\` en html). En Vite, coloca el contenido de \`themeScript\` dentro de un script en el head de index.html.
 
-Requisitos: React 18/19, Tailwind CSS v4, alias \`@/\` y components.json (\`npx shadcn@latest init\`).
-Actualizar: repite el \`add\` con \`--overwrite\`.
+Requisitos: React 19, Tailwind CSS v4, alias \`@/\` y components.json (\`npx shadcn@latest init\`).
+Si la biblioteca ya está instalada, revisa sus imports y API locales. Usa \`--overwrite\` solo para una actualización deliberada.
 
 Opcional — namespace en components.json para \`npx shadcn add @beautiful-ui/<item>\`:
 "registries": { "@beautiful-ui": "${REGISTRY}/{name}.json" }`;
@@ -75,6 +97,8 @@ function signatures(code) {
     }
     out.push(`${m[1]}${code.slice(start, i + 1)}`);
   }
+  for (const [, name, types] of code.matchAll(/^export const (\w+) = forwardRef<(.+)>\(/gm))
+    out.push(`${name} = forwardRef<${types}>`);
   return out;
 }
 
@@ -90,41 +114,80 @@ const tools = {
       "Lista todos los items del registro Beautiful UI (kit básico, átomos, los 20 componentes de IA, fundación) con su descripción. Úsalo primero para saber qué existe.",
     inputSchema: { type: "object", properties: {} },
     async run() {
-      const reg = await get(`${REGISTRY}/registry.json`);
+      const [reg, index] = await Promise.all([registry(), componentIndex()]);
       const rows = reg.items.map((i) => `- **${i.name}** (${i.type.replace("registry:", "")}) — ${i.title}${i.description ? `: ${i.description}` : ""}`);
-      return `Registro: ${REGISTRY}/registry.json\n\n${rows.join("\n")}\n\nKit: importa desde "@/components/ui". Componentes de IA: import X from "@/components/primitives/X".`;
+      const exports = ["ui-kit", "form"].map((id) => {
+        const entries = Object.entries(index).filter(([, entry]) => entry.item === id);
+        const components = entries.filter(([, entry]) => !entry.kind || entry.kind === "component").map(([name]) => name);
+        const hooks = entries.filter(([, entry]) => entry.kind === "hook").map(([name]) => name);
+        const icons = entries.filter(([, entry]) => entry.kind === "icon").length;
+        const other = entries.length - components.length - hooks.length - icons;
+        return [
+          components.length && `\n${id}: ${components.join(", ")}`,
+          hooks.length && `\nHooks: ${hooks.join(", ")}`,
+          icons > 0 && `\n${icons} iconos con prefijo Icon.`,
+          other > 0 && `\n${other} tipos y utilidades consultables por export.`,
+        ].filter(Boolean).join("");
+      });
+      return `Registro: ${REGISTRY}/registry.json\n\n${rows.join("\n")}\n\nConsulta por export con get_component (p. ej. "Select"), o por ID (p. ej. "search").${exports.join("")}`;
     },
   },
 
   get_component: {
     description:
-      "Devuelve un item del registro: archivos destino, dependencias, comando de instalación, firmas de props y (por defecto) el código fuente completo. Usa 'ui-kit' para el kit básico o el nombre kebab de un componente (prompt-bar, approval-card, sidebar-nav, search…).",
+      "Consulta por export de React (Button, Select, SearchList) o ID del registro (ui-kit, prompt-bar). Devuelve instalación, firmas y notas de uso cuando están disponibles. Para una consulta breve, usa include_source: false.",
     inputSchema: {
       type: "object",
       properties: {
-        name: { type: "string", description: "Nombre del item, p. ej. 'prompt-bar' o 'ui-kit'." },
+        name: { type: "string", description: "Export público (Select, FormField) o ID del registro (ui-kit, prompt-bar)." },
         file: { type: "string", description: "Opcional: solo los archivos cuya ruta contenga este texto (p. ej. 'Overlay')." },
-        include_source: { type: "boolean", description: "Incluir el código fuente (por defecto true)." },
+        include_source: { type: "boolean", description: "Incluir código fuente. Por defecto se omite en items de más de tres archivos sin filtro y se incluye en consultas concretas." },
       },
       required: ["name"],
     },
-    async run({ name, file, include_source = true }) {
-      const it = await item(name);
-      const files = it.files.filter((f) => !file || f.path.toLowerCase().includes(String(file).toLowerCase()));
+    async run({ name, file, include_source }) {
+      const [reg, index] = await Promise.all([registry(), componentIndex()]);
+      const resolved = resolveComponent(name, reg, index);
+      const it = await item(resolved.item);
+      const source = resolved.sourceItem === resolved.item ? it : await item(resolved.sourceItem);
+      const files = source.files.filter((f) => file
+        ? f.path.toLowerCase().includes(String(file).toLowerCase())
+        : !resolved.target || f.target === resolved.target);
+      if (file && !files.length) throw new Error(`Ningún archivo de ${source.name} coincide con «${file}».`);
+      const overview = !resolved.target && !file && (files.length === 0 || files.length > 3);
+      const includeSource = include_source ?? !overview;
+      const usage = resolved.usage ?? (source.files.length === 1
+        ? Object.values(index).find((entry) => entry.sourceItem === source.name && entry.usage)?.usage
+        : undefined);
       const parts = [
-        `# ${it.title} (\`${it.name}\`)`,
+        `# ${resolved.symbol ?? it.title} (\`${it.name}\`)`,
         it.description ?? "",
+        ...(resolved.import ? [`Import: \`${resolved.import}\``] : []),
         `Instalar: \`npx shadcn@latest add ${REGISTRY}/${it.name}.json\``,
         `Dependencias npm: ${(it.dependencies ?? []).join(", ") || "—"}`,
         `Depende de: ${it.registryDependencies.map(depName).join(", ") || "—"}`,
-        `Archivos: ${it.files.map((f) => f.target).join(", ") || "— (meta-item)"}`,
+        `Archivos: ${(resolved.target || file ? files : it.files).map((f) => f.target).join(", ") || "— (meta-item)"}`,
+        ...(usage ? [`\n## Uso\n${usage}`] : []),
       ];
-      for (const f of files) {
+      if (overview) {
+        parts.push("Consulta un export concreto o usa `file` para elegir un archivo. `list_components` muestra el catálogo.");
+      }
+      const api = !overview && await optionalJson(`${REGISTRY}/api/${source.name}.json`);
+      for (const f of overview ? [] : files) {
         if (!/\.tsx?$/.test(f.path)) continue;
-        const sig = signatures(f.content);
+        const docs = api?.[f.target];
+        const doc = docs?.[resolved.symbol ?? source.title];
+        const selected = doc ? [doc] : !resolved.symbol && docs ? Object.values(docs) : [];
+        if (selected.length) {
+          const declarations = new Set(selected.flatMap((entry) => [entry.signature, ...entry.types]));
+          parts.push(`\n## Firmas — ${f.target}\n\`\`\`ts\n${[...declarations].join("\n\n")}\n\`\`\``);
+          continue;
+        }
+        const sig = signatures(f.content).filter((signature) => !resolved.symbol
+          || signature.startsWith(`${resolved.symbol}(`) || signature.startsWith(`${resolved.symbol} =`));
         if (sig.length) parts.push(`\n## Firmas — ${f.target}\n\`\`\`ts\n${sig.join("\n\n")}\n\`\`\``);
       }
-      if (include_source)
+      if (includeSource)
         for (const f of files) parts.push(`\n## ${f.target}\n\`\`\`${f.path.split(".").pop()}\n${f.content}\n\`\`\``);
       return parts.join("\n");
     },
@@ -148,7 +211,7 @@ const tools = {
         cssBlock(css, ".dark"),
         "```",
         kit && "\nExtensión del kit (kit.css): escala tipográfica text-display…text-overline, paleta de series --chart-1…8, acentos [data-accent], contraste AA:",
-        kit && "```css\n" + kit.slice(0, 6000) + "\n```",
+        kit && "```css\n" + kit + "\n```",
         `Tokens en formato DTCG (Figma/Style Dictionary): ${SITE}/tokens.json`,
         "Clases de la fundación: primitive-card-bar, primitive-card-pad, primitive-card-footer, primitive-icon-button, filter-status-{todo,progress,done}.",
         `Keyframes globales: ${[...css.matchAll(/@keyframes ([\w-]+)/g)].map((m) => m[1]).join(", ")}.`,
@@ -157,15 +220,17 @@ const tools = {
   },
 
   get_install_instructions: {
-    description: "Comandos para instalar Beautiful UI (todo o items concretos) en un proyecto React + Tailwind v4, y los pasos manuales de CSS y fuentes.",
+    description: "Comandos de instalación para exports o IDs del registro, con configuración de CSS, fuentes, providers y tema.",
     inputSchema: {
       type: "object",
       properties: {
-        components: { type: "array", items: { type: "string" }, description: "Items a instalar (por defecto 'all')." },
+        components: { type: "array", items: { type: "string" }, description: "Exports o IDs a instalar. Pasa los que requiere tu pantalla (por defecto 'all')." },
       },
     },
     async run({ components } = {}) {
-      const names = components?.length ? components : ["all"];
+      const [reg, index] = await Promise.all([registry(), componentIndex()]);
+      const resolved = (components?.length ? components : ["all"]).map((name) => resolveComponent(name, reg, index));
+      const names = [...new Set(resolved.map((component) => component.item))];
       return [
         "```bash",
         "npx shadcn@latest init   # solo si el proyecto no tiene components.json",
@@ -177,30 +242,66 @@ const tools = {
   },
 
   get_guidelines: {
-    description: "Guía completa de uso de Beautiful UI (la skill): reglas, tokens, API del kit, cuándo usar cada componente de IA, composición y checklist.",
-    inputSchema: { type: "object", properties: {} },
-    run: () => skillText(),
+    description: "Guía de Beautiful UI. Usa detail: 'quick' para el flujo de trabajo y 'full' para la skill completa.",
+    inputSchema: { type: "object", properties: { detail: { type: "string", enum: ["quick", "full"] } } },
+    async run({ detail = "full" } = {}) {
+      const text = await skillText();
+      if (detail !== "quick") return text;
+      const workflow = (guide) => guide.replace(/\r\n/g, "\n").match(/^## Flujo de trabajo\n\n([\s\S]*?)(?=^## )/m)?.[1].trim();
+      return workflow(text) ?? workflow(readFileSync(BUNDLED_SKILL, "utf8")) ?? text;
+    },
   },
 
   get_example: {
     description:
-      "Código fuente de referencia hecho solo con el sistema. 'app' = app con sidebar, ⌘K, dashboard y asistente; 'gallery' = galería; plantillas de página: 'login', 'listado' (tabla+filtros+Sheet), 'analitica' (gráficas), 'ajustes', 'alta' (wizard), 'error'. Instálalas con get_component '<x>-page'.",
+      "Código fuente de referencia. 'app' = sidebar, ⌘K, dashboard y asistente; 'gallery' = galería; ejemplos instalables: 'login', 'listado', 'analitica', 'ajustes', 'alta', 'error', 'chat'.",
     inputSchema: {
       type: "object",
-      properties: { page: { type: "string", enum: ["app", "gallery", "login", "listado", "analitica", "ajustes", "alta", "error"], description: "Por defecto 'app'." } },
+      properties: {
+        page: { type: "string", enum: ["app", "gallery", "login", "listado", "analitica", "ajustes", "alta", "error", "chat"], description: "Por defecto 'app'." },
+        file: { type: "string", description: "En app o gallery, nombre del archivo de referencia (p. ej. GalleryMore.tsx). Gallery lista los archivos al omitirlo." },
+      },
     },
-    async run({ page = "app" } = {}) {
-      const TPL = { login: "LoginPage", listado: "ListDetailPage", analitica: "AnalyticsPage", ajustes: "SettingsPage", alta: "WizardPage", error: "ErrorPage" };
-      const path = page === "gallery" ? "src/pages/DesignSystem.tsx" : TPL[page] ? `src/components/blocks/${TPL[page]}.tsx` : "src/pages/ExampleApp.tsx";
-      const live = page === "app" ? "#/app" : TPL[page] ? `#/plantillas/${page}` : "";
-      return `Fuente: ${RAW}/${path} (en vivo: ${SITE}/${live})\n\n\`\`\`tsx\n${await get(`${RAW}/${path}`, "text")}\n\`\`\``;
+    async run({ page = "app", file: filename } = {}) {
+      const templates = { login: "login-page", listado: "list-detail-page", analitica: "analytics-page", ajustes: "settings-page", alta: "wizard-page", error: "error-page", chat: "chat-recipe" };
+      if (Object.hasOwn(templates, page)) {
+        const id = templates[page];
+        const { files: [file] } = await item(id);
+        return [
+          page === "chat" ? "Receta: chat con datos de la aplicación" : `Plantilla: ${SITE}/#/plantillas/${page}`,
+          `Instalar: \`npx shadcn@latest add ${REGISTRY}/${id}.json\``,
+          `Archivo: \`${file.target}\``,
+          "Adapta los datos y conecta las acciones al producto antes de usar la plantilla.",
+          `\n\`\`\`tsx\n${file.content}\n\`\`\``,
+        ].join("\n");
+      }
+      const example = page === "gallery" ? "gallery" : "app";
+      const live = example === "gallery" ? SITE : `${SITE}/#/app`;
+      const published = `${REGISTRY}/examples/${example}.json`;
+      const snapshot = await optionalJson(published);
+      if (snapshot) {
+        const files = snapshot.files.map((f) => f.path).join(", ");
+        const selected = filename ? snapshot.files.find((f) => f.path === filename || f.path.endsWith(`/${filename}`)) : snapshot.files[0];
+        if (!selected) throw new Error(`Archivo desconocido: «${filename}». Disponibles: ${files}`);
+        const parts = [`Fuente: ${published} (en vivo: ${live})`, `Archivos: ${files}`];
+        if (example === "gallery") {
+          parts.push("La galería usa archivos internos del sitio. Para una pantalla instalable, consulta listado, login u otra plantilla.");
+          if (!filename) return [...parts, "Pasa `file` para leer uno de los archivos."].join("\n");
+        }
+        return [...parts, `\n\`\`\`${selected.path.split(".").at(-1)}\n${selected.content}\n\`\`\``].join("\n");
+      }
+      const path = example === "gallery" ? "src/pages/DesignSystem.tsx" : "src/pages/ExampleApp.tsx";
+      if (filename && filename !== path.slice(4) && filename !== path.split("/").at(-1)) {
+        throw new Error("Este registro anterior solo ofrece el archivo principal.");
+      }
+      return `Fuente: ${RAW}/${path} (en vivo: ${live})\n\n\`\`\`tsx\n${await get(`${RAW}/${path}`, "text")}\n\`\`\``;
     },
   },
 };
 
 /* ── protocolo MCP (JSON-RPC por líneas sobre stdio) ──────────────────── */
 const INSTRUCTIONS =
-  "Beautiful UI es el sistema de diseño del usuario (React + Tailwind v4, registro shadcn). Antes de construir UI con él, llama a get_guidelines; usa list_components / get_component para la API exacta, get_design_tokens para colores, tipografía, sombras y radios, y get_example para partir de una plantilla de página (login, listado, analítica, ajustes, alta, error). Nunca uses colores sueltos: solo tokens.";
+  "Si el usuario pide Beautiful UI o el proyecto ya lo usa, revisa primero las dependencias e imports locales. Consulta get_guidelines con detail: 'quick' y usa get_component por nombre React para comprobar el import y la API. Busca una plantilla con get_example si la tarea es una pantalla completa. Instala solo los items que falten y utiliza los tokens del sistema.";
 
 const PROMPT = { name: "beautiful-ui", description: "Carga la guía de Beautiful UI para construir interfaces con el sistema de diseño." };
 

@@ -95,6 +95,7 @@ export default function StreamingText({
   labels,
   loop = true,
   fill = false,
+  showActions = true,
   onDone,
   onFollowUp,
 }: {
@@ -111,6 +112,8 @@ export default function StreamingText({
   loop?: boolean;
   /** fill the parent width instead of the gallery's fixed measure */
   fill?: boolean;
+  /** show the action toolbar, source panel and follow-up prompts */
+  showActions?: boolean;
   onDone?: () => void;
   /** fired when a follow-up prompt is chosen */
   onFollowUp?: (text: string, index: number) => void;
@@ -154,6 +157,7 @@ export default function StreamingText({
       </p>
 
       {/* action icons row */}
+      {showActions && <>
       <div
         className="mt-2 flex items-center gap-0.5 transition-opacity duration-400"
         style={{ opacity: done ? 1 : 0, pointerEvents: done ? "auto" : "none" }}
@@ -247,6 +251,7 @@ export default function StreamingText({
           ))}
         </div>
       </div>
+      </>}
     </div>
   );
 }

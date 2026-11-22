@@ -1,5 +1,8 @@
+"use client";
+
 import { useMemo, useState } from "react";
 import {
+  Alert,
   Avatar,
   Breadcrumb,
   Button,
@@ -7,6 +10,7 @@ import {
   DataTable,
   DateRangePicker,
   EmptyState,
+  Field,
   IconCopy,
   IconInbox,
   IconPencil,
@@ -18,21 +22,34 @@ import {
   Pagination,
   Separator,
   Sheet,
+  SkeletonText,
   StatusPill,
   Tag,
   addDays,
+  sortTableRows,
   startOfDay,
   useToast,
   type Column,
   type DateRange,
+  type MenuItem,
+  type SortState,
   type Status,
 } from "@/components/ui";
 
 /* Plantilla: listado con filtros arriba (búsqueda, estado, fechas), tabla
  * ordenable y paginada, y detalle en Sheet al pulsar una fila. Clic derecho
- * en la tabla abre acciones. Sustituye ORDERS por tus datos. */
+ * en la tabla abre acciones. Pasa orders y los callbacks para integrarla. */
 
-type Order = { id: string; customer: string; color: string; email: string; status: Status; total: number; items: number; date: Date; tags: string[] };
+export type Order = { id: string; customer: string; color?: string; email: string; status: Status; total: number; items: number; date: Date; tags: string[] };
+type OrderAction = "duplicate" | "export" | "delete" | "invoice";
+type ListDetailPageProps = {
+  orders?: Order[];
+  loading?: boolean;
+  error?: string;
+  onRetry?: () => void;
+  onCreate?: () => void;
+  onOrderAction?: (action: OrderAction, orders: Order[]) => void;
+};
 
 const NAMES = ["Mango Moon", "Kumo Creamery", "Alpine Churn", "Cone King", "Gelato Lab", "Frost & Co", "Vanilla Sky", "Polar Scoop", "Berry Bowl", "Cocoa Club", "Mint Hill", "Nube Dulce"];
 const COLORS = ["#e5a321", "#16a6c7", "#25a878", "#e08a3c", "#2f6fec", "#7a5af8", "#d55181", "#1f7a5f"];
@@ -60,29 +77,39 @@ export const ORDERS: Order[] = Array.from({ length: 48 }, (_, i) => {
 });
 
 const PAGE = 10;
+const EMPTY_ORDERS: Order[] = [];
 
-export default function ListDetailPage({ orders = ORDERS }: { orders?: Order[] }) {
+export default function ListDetailPage({ orders, loading, error, onRetry, onCreate, onOrderAction }: ListDetailPageProps) {
+  const demo = orders === undefined && !loading && !error && !onCreate && !onOrderAction && !onRetry;
+  const sourceRows = orders ?? (demo ? ORDERS : EMPTY_ORDERS);
   const toast = useToast();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<Status[]>([]);
-  const [range, setRange] = useState<DateRange & { preset?: string }>({ from: addDays(today, -89), to: today, preset: "90d" });
+  const [range, setRange] = useState<DateRange & { preset?: string }>(() => demo
+    ? { from: addDays(today, -89), to: today, preset: "90d" }
+    : { from: null, to: null });
   const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<SortState>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [open, setOpen] = useState<Order | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const open = sourceRows.find((order) => order.id === openId);
+  const selectedOrders = sourceRows.filter((order) => selected.has(order.id));
+  const hasOrderActions = demo || !!onOrderAction;
 
   const money = (n: number) => n.toLocaleString("es-ES", { style: "currency", currency: "EUR" });
   const date = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" });
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return orders.filter(
+    const end = range.to ? addDays(range.to, 1) : null;
+    return sourceRows.filter(
       (o) =>
         (!q || o.customer.toLowerCase().includes(q) || o.id.includes(q)) &&
         (!status.length || status.includes(o.status)) &&
         (!range.from || o.date >= range.from) &&
-        (!range.to || o.date <= range.to),
+        (!end || o.date < end),
     );
-  }, [orders, query, status, range]);
+  }, [sourceRows, query, status, range]);
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE));
   const current = Math.min(page, pages);
 
@@ -108,7 +135,53 @@ export default function ListDetailPage({ orders = ORDERS }: { orders?: Order[] }
     { key: "total", header: "Total", width: "110px", align: "right", sortValue: (o) => o.total, render: (o) => <span className="font-mono text-meta">{money(o.total)}</span> },
   ];
 
-  const pageRows = filtered.slice((current - 1) * PAGE, current * PAGE);
+  const pageRows = sortTableRows(filtered, columns, sort).slice((current - 1) * PAGE, current * PAGE);
+  function clearFilters() {
+    setQuery("");
+    setStatus([]);
+    setRange({ from: null, to: null });
+    setPage(1);
+  }
+  function runAction(action: OrderAction, rows: Order[], demoMessage: string) {
+    if (onOrderAction) onOrderAction(action, rows);
+    else if (demo) toast(demoMessage);
+  }
+  const contextActions: MenuItem[] = [
+    { type: "label", label: `${selectedOrders.length || "Sin"} seleccionados` },
+    { label: "Duplicar", icon: <IconCopy size={14} />, onSelect: () => runAction("duplicate", selectedOrders, "Duplicado") },
+    { label: "Exportar CSV", icon: <IconPencil size={14} />, onSelect: () => runAction("export", selectedOrders, "Exportando…") },
+    { type: "separator" },
+    { label: "Eliminar", icon: <IconTrash size={14} />, danger: true, onSelect: () => runAction("delete", selectedOrders, "Eliminados") },
+  ];
+  const table = (
+    <DataTable
+      columns={columns}
+      rows={pageRows}
+      rowKey={(order) => order.id}
+      selected={hasOrderActions ? selected : undefined}
+      onSelectedChange={hasOrderActions ? setSelected : undefined}
+      sort={sort}
+      onSortChange={(next) => (setSort(next), setPage(1))}
+      onRowClick={(order) => setOpenId(order.id)}
+      minWidth={640}
+      empty={
+        <EmptyState
+          icon={<IconInbox size={15} />}
+          title="Sin resultados"
+          hint="Prueba con otro filtro o amplía el rango de fechas."
+          action={<Button size="xs" onClick={clearFilters}>Quitar filtros</Button>}
+        />
+      }
+      footer={
+        <>
+          <span className="tabular-nums">
+            {filtered.length ? `${(current - 1) * PAGE + 1}–${Math.min(current * PAGE, filtered.length)} de ${filtered.length}` : "0 resultados"}
+          </span>
+          <Pagination page={current} total={pages} onChange={setPage} />
+        </>
+      }
+    />
+  );
 
   return (
     <div className="min-h-dvh bg-page">
@@ -117,15 +190,17 @@ export default function ListDetailPage({ orders = ORDERS }: { orders?: Order[] }
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-title text-ink">Pedidos</h1>
-            <p className="mt-1 text-body text-ink-3">{filtered.length} pedidos en el periodo seleccionado.</p>
+            {!loading && !error && <p className="mt-1 text-body text-ink-3">{filtered.length} pedidos en el periodo seleccionado.</p>}
           </div>
-          <Button variant="primary" size="sm" onClick={() => toast("Nuevo pedido (conecta tu formulario)")}>
-            <IconPlus size={13} /> Nuevo pedido
-          </Button>
+          {(demo || onCreate) && (
+            <Button variant="primary" size="sm" onClick={onCreate ?? (() => toast("Nuevo pedido (conecta tu formulario)"))}>
+              <IconPlus size={13} /> Nuevo pedido
+            </Button>
+          )}
         </div>
 
         {/* filtros: una fila, encima de lo que filtran */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-end gap-2">
           <Input
             className="w-full sm:w-64"
             placeholder="Buscar cliente o nº…"
@@ -134,75 +209,62 @@ export default function ListDetailPage({ orders = ORDERS }: { orders?: Order[] }
             value={query}
             onChange={(e) => (setQuery(e.target.value), setPage(1))}
           />
-          <MultiSelect
-            className="w-full sm:w-56"
-            placeholder="Estado"
-            value={status}
-            onChange={(v) => (setStatus(v), setPage(1))}
-            options={STATUS.map((s) => ({ value: s, label: STATUS_LABEL[s] }))}
-          />
-          <DateRangePicker value={range} onChange={(v) => (setRange(v), setPage(1))} />
-          {(query || status.length > 0) && (
-            <Button size="xs" variant="quiet" onClick={() => (setQuery(""), setStatus([]))}>
+          <Field label="Estado" className="w-full sm:w-56">
+            {(id) => (
+              <MultiSelect
+                id={id}
+                placeholder="Todos los estados"
+                value={status}
+                onChange={(v) => (setStatus(v), setPage(1))}
+                options={STATUS.map((s) => ({ value: s, label: STATUS_LABEL[s] }))}
+              />
+            )}
+          </Field>
+          <Field label="Fechas">
+            {(id) => <DateRangePicker id={id} value={range} onChange={(v) => (setRange(v), setPage(1))} />}
+          </Field>
+          {(query || status.length > 0 || range.from || range.to) && (
+            <Button size="xs" variant="quiet" onClick={clearFilters}>
               Limpiar filtros
             </Button>
           )}
         </div>
 
-        <ContextMenu
-          items={[
-            { type: "label", label: `${selected.size || "Sin"} seleccionados` },
-            { label: "Duplicar", icon: <IconCopy size={14} />, onSelect: () => toast("Duplicado") },
-            { label: "Exportar CSV", icon: <IconPencil size={14} />, onSelect: () => toast("Exportando…") },
-            { type: "separator" },
-            { label: "Eliminar", icon: <IconTrash size={14} />, danger: true, onSelect: () => toast("Eliminados") },
-          ]}
-        >
-          <DataTable
-            columns={columns}
-            rows={pageRows}
-            rowKey={(o) => o.id}
-            selected={selected}
-            onSelectedChange={setSelected}
-            onRowClick={setOpen}
-            minWidth={640}
-            empty={
-              <EmptyState
-                icon={<IconInbox size={15} />}
-                title="Sin resultados"
-                hint="Prueba con otro filtro o amplía el rango de fechas."
-                action={
-                  <Button size="xs" onClick={() => (setQuery(""), setStatus([]), setRange({ from: null, to: null }))}>
-                    Quitar filtros
-                  </Button>
-                }
-              />
-            }
-            footer={
-              <>
-                <span className="tabular-nums">
-                  {filtered.length ? `${(current - 1) * PAGE + 1}–${Math.min(current * PAGE, filtered.length)} de ${filtered.length}` : "0 resultados"}
-                </span>
-                <Pagination page={current} total={pages} onChange={setPage} />
-              </>
-            }
-          />
-        </ContextMenu>
+        {error ? (
+          <Alert
+            tone="danger"
+            title="No se pudieron cargar los pedidos"
+            action={onRetry && <Button size="xs" onClick={onRetry}>Reintentar</Button>}
+          >
+            {error}
+          </Alert>
+        ) : loading ? (
+          <div role="status" className="rounded-card bg-surface p-4 shadow-card">
+            <span className="sr-only">Cargando pedidos</span>
+            <SkeletonText lines={8} />
+          </div>
+        ) : hasOrderActions ? (
+          <ContextMenu items={selectedOrders.length ? contextActions : [{ type: "label", label: "Selecciona algún pedido" }]}>
+            {table}
+          </ContextMenu>
+        ) : table}
       </div>
 
       <Sheet
         open={!!open}
-        onClose={() => setOpen(null)}
+        onClose={() => setOpenId(null)}
         title={open ? `Pedido ${open.id}` : ""}
         description={open?.customer}
         footer={
           <>
-            <Button size="sm" variant="quiet" onClick={() => setOpen(null)}>
+            <Button size="sm" variant="quiet" onClick={() => setOpenId(null)}>
               Cerrar
             </Button>
-            <Button size="sm" variant="accent" onClick={() => (toast(`Factura de ${open?.id} enviada`), setOpen(null))}>
-              Enviar factura
-            </Button>
+            {open && hasOrderActions && (
+              <Button size="sm" variant="accent" onClick={() => runAction("invoice", [open], `Factura de ${open.id} enviada`)}>
+                Enviar factura
+              </Button>
+            )}
           </>
         }
       >
@@ -231,19 +293,23 @@ export default function ListDetailPage({ orders = ORDERS }: { orders?: Order[] }
                 </div>
               ))}
             </dl>
-            <Separator />
-            <div>
-              <h3 className="mb-2 text-overline text-ink-3 uppercase">Actividad</h3>
-              <ol className="flex flex-col gap-3 border-l border-line pl-4">
-                {["Pedido creado", "Pago confirmado", open.status === "done" ? "Entregado" : "Preparando envío"].map((e, i) => (
-                  <li key={e} className="relative text-body text-ink-2">
-                    <span className="absolute top-1.5 -left-[20.5px] size-2 rounded-full bg-surface shadow-[0_0_0_1.5px_var(--line-strong)]" />
-                    {e}
-                    <span className="ml-2 text-meta text-ink-3">{date.format(addDays(open.date, i))}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
+            {demo && (
+              <>
+                <Separator />
+                <div>
+                  <h3 className="mb-2 text-overline text-ink-3 uppercase">Actividad</h3>
+                  <ol className="flex flex-col gap-3 border-l border-line pl-4">
+                    {["Pedido creado", "Pago confirmado", open.status === "done" ? "Entregado" : "Preparando envío"].map((e, i) => (
+                      <li key={e} className="relative text-body text-ink-2">
+                        <span className="absolute top-1.5 -left-[20.5px] size-2 rounded-full bg-surface shadow-[0_0_0_1.5px_var(--line-strong)]" />
+                        {e}
+                        <span className="ml-2 text-meta text-ink-3">{date.format(addDays(open.date, i))}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              </>
+            )}
           </div>
         )}
       </Sheet>

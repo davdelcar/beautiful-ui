@@ -19,12 +19,14 @@ import { execFileSync } from "node:child_process";
 import { copyFile, mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { writeRegistryApi } from "./registry-api.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = join(ROOT, "src");
 /* REGISTRY_OUT: escribe solo el registro en otra carpeta (snapshots versionados en CI) */
 const OUT = process.env.REGISTRY_OUT || join(ROOT, "public", "r");
 const ONLY_REGISTRY = !!process.env.REGISTRY_OUT;
+const SKILL_PATH = join(ROOT, "mcp", "skill", "SKILL.md");
 const BASE = (process.env.REGISTRY_URL || "https://davdelcar.github.io/beautiful-ui/r").replace(/\/$/, "");
 const HOMEPAGE = BASE.replace(/\/r$/, "");
 const SCHEMA_ITEM = "https://ui.shadcn.com/schema/registry-item.json";
@@ -67,6 +69,7 @@ const transform = (code) =>
   code.replace(new RegExp(`["']${CENTRAL.replace(/[/.]/g, "\\$&")}/[A-Za-z0-9]+["']`, "g"), '"@/components/vendor/central-icons"');
 
 const items = new Map();
+const sources = new Map();
 
 async function addItem({ name, type, title, description, files, extraDeps = [], extraRegistryDeps = [] }) {
   const deps = new Set(extraDeps);
@@ -74,6 +77,7 @@ async function addItem({ name, type, title, description, files, extraDeps = [], 
   const out = [];
   for (const f of files) {
     let content = f.content ?? (await readFile(join(SRC, f.from), "utf8"));
+    if (f.from) sources.set(f.to, f.from);
     if (f.transform) content = transform(content);
     for (const spec of importsOf(content)) {
       const it = itemForImport(spec);
@@ -190,6 +194,7 @@ await addItem({
 
 /* ── plantillas de página ────────────────────────────────────────────── */
 const BLOCK_INFO = {
+  ChatRecipe: "Chat integrado con mensajes, estado de espera, error y envío controlados por la aplicación.",
   LoginPage: "Login y registro con validación y proveedores sociales.",
   ListDetailPage: "Listado con filtros, tabla ordenable/paginada, detalle en Sheet y menú contextual.",
   AnalyticsPage: "Analítica: filtros de fecha, KPIs con sparkline, línea, barras apiladas y cuota.",
@@ -230,6 +235,69 @@ for (const it of items.values()) {
 await rm(OUT, { recursive: true, force: true });
 await mkdir(OUT, { recursive: true });
 for (const it of items.values()) await writeFile(join(OUT, `${it.name}.json`), JSON.stringify(it, null, 2) + "\n");
+
+// Public names can differ from the registry ID and live in a different item.
+const componentIndex = {};
+const exportKind = (symbol, target) => target.endsWith("/icons.tsx") ? "icon"
+  : /^use[A-Z]/.test(symbol) ? "hook"
+  : /^[A-Z].*[a-z]/.test(symbol) ? "component"
+  : "utility";
+for (const it of items.values()) {
+  if (it.files.length !== 1) continue;
+  const { target, content } = it.files[0];
+  const name = content.match(/^export default function (\w+)/m)?.[1];
+  if (name) componentIndex[name] = {
+    item: it.name, sourceItem: it.name, target, kind: "component",
+    import: `import ${name} from "@/${target.replace(/\.tsx?$/, "")}";`,
+  };
+}
+for (const [name, folder] of [["ui-kit", "ui"], ["form", "form"]]) {
+  const entry = items.get(name).files.find((f) => f.path === `components/${folder}/index.ts`);
+  const module = `@/components/${folder}`;
+  for (const [, exports, from] of entry.content.matchAll(/^export\s+(\{[^}]+\}|\*)\s+from\s+"([^"]+)";/gm)) {
+    const path = from.startsWith("./") ? `components/${folder}/${from.slice(2)}` : from.slice(2);
+    const sourceItem = from.startsWith("./") ? name : itemForImport(from);
+    const file = items.get(sourceItem)?.files.find((f) => f.path.replace(/\.tsx?$/, "") === path);
+    if (!file) throw new Error(`No se encontró la fuente de ${from} en ${module}`);
+    const names = exports === "*"
+      ? [...file.content.matchAll(/^export (?:const|function) (\w+)/gm)].map(([, symbol]) => symbol)
+      : exports.slice(1, -1).split(",").map((part) => part.trim()).filter(Boolean);
+    for (const entry of names) {
+      const typeOnly = entry.startsWith("type ");
+      const symbol = entry.replace(/^type /, "").split(/\s+as\s+/).at(-1);
+      componentIndex[symbol] = {
+        item: name, sourceItem, target: file.target, kind: typeOnly ? "type" : exportKind(symbol, file.target),
+        import: `import ${typeOnly ? "type " : ""}{ ${symbol} } from "${module}";`,
+      };
+    }
+  }
+}
+const skill = (await readFile(SKILL_PATH, "utf8")).replace(/\r\n/g, "\n");
+const notesSection = skill.match(/^## Notas de uso por componente\n\n([\s\S]*?)(?=^## )/m)?.[1];
+if (!notesSection) throw new Error("Falta la sección de notas de uso de la skill");
+for (const line of notesSection.trim().split("\n")) {
+  const note = line.match(/^- \*\*(.+)\*\* — (.+)$/);
+  if (!note) throw new Error(`Nota de uso inválida: ${line}`);
+  for (const symbol of note[1].split(", ").map((code) => code.slice(1, -1))) {
+    const entry = componentIndex[symbol];
+    if (!entry) throw new Error(`La nota de uso referencia un export desconocido: ${symbol}`);
+    entry.usage = note[2];
+  }
+}
+await writeFile(join(OUT, "component-index.json"), JSON.stringify(componentIndex, null, 2) + "\n");
+await writeRegistryApi(ROOT, OUT, componentIndex, sources);
+const examplesOut = join(OUT, "examples");
+await mkdir(examplesOut, { recursive: true });
+for (const [name, paths] of [
+  ["app", ["ExampleApp.tsx"]],
+  ["gallery", ["DesignSystem.tsx", "GalleryMore.tsx", "Showcase.tsx", "docs.tsx", "templates.ts"]],
+]) {
+  const files = await Promise.all(paths.map(async (name) => {
+    const path = `pages/${name}`;
+    return { path, content: await readFile(join(SRC, path), "utf8") };
+  }));
+  await writeFile(join(examplesOut, `${name}.json`), JSON.stringify({ files }) + "\n");
+}
 const PKG = JSON.parse(await readFile(join(ROOT, "package.json"), "utf8"));
 await writeFile(
   join(OUT, "registry.json"),
@@ -308,7 +376,7 @@ await rm(SKILL_OUT, { recursive: true, force: true });
 await rm(MCP_OUT, { recursive: true, force: true });
 await mkdir(SKILL_OUT, { recursive: true });
 await mkdir(MCP_OUT, { recursive: true });
-await copyFile(join(ROOT, "mcp", "skill", "SKILL.md"), join(SKILL_OUT, "SKILL.md"));
+await copyFile(SKILL_PATH, join(SKILL_OUT, "SKILL.md"));
 const packed = execFileSync("npm", ["pack", join(ROOT, "mcp"), "--pack-destination", MCP_OUT, "--silent"], { encoding: "utf8" })
   .trim()
   .split("\n")

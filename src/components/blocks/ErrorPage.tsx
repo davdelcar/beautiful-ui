@@ -1,3 +1,5 @@
+"use client";
+
 import type { ReactNode } from "react";
 import { Button, IconArrowRight, IconSearch, Input } from "@/components/ui";
 

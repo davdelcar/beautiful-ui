@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { z } from "zod";
 import { Form, FormField, useZodForm } from "@/components/form";

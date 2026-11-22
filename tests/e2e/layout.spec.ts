@@ -103,6 +103,7 @@ test("Select: flechas y Enter eligen, el foco vuelve al disparador", async ({ pa
   await page.goto("#/plantillas/ajustes");
   const rol = page.getByLabel("Rol");
   await rol.click();
+  await expect(page.getByRole("option", { name: "Administrador" })).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Enter");
   await expect(rol).toBeFocused();

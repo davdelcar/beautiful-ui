@@ -85,8 +85,12 @@ test("listado: filtrar, ordenar y abrir detalle", async ({ page }) => {
   const rows = page.getByRole("row").filter({ hasText: "Mango Moon" });
   await expect(rows.first()).toBeVisible();
   await page.getByRole("button", { name: "Total" }).click();
-  await rows.first().click();
+  await expect(page.getByRole("columnheader", { name: "Total" })).toHaveAttribute("aria-sort", "ascending");
+  await rows.first().press("Enter");
   await expect(page.locator("dialog[open]")).toContainText("Mango Moon");
+  await page.keyboard.press("Escape");
+  await expect(page.locator("dialog[open]")).toHaveCount(0);
+  await expect(rows.first()).toBeFocused();
 });
 
 test("gráficas: vista de tabla accesible", async ({ page }) => {

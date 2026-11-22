@@ -1,3 +1,5 @@
+"use client";
+
 /* Kit de elementos básicos de la app, construido sobre los átomos y la
  * fundación oficiales de Beautiful UI. Los átomos originales se reexportan
  * para importar todo desde "@/components/ui". */
@@ -28,7 +30,7 @@ export {
   Stat,
   type Status,
 } from "./Display";
-export { DataTable, type Column, type SortState } from "./DataTable";
+export { DataTable, sortTableRows, type Column, type SortState } from "./DataTable";
 export { Popover, Combobox, type ComboboxOption } from "./Popover";
 export { Sheet } from "./Sheet";
 export { CommandPalette, useHotkey, modKey, type CommandItem, type CommandGroup } from "./Command";

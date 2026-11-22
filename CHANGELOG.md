@@ -2,6 +2,19 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/). Cada versión tiene su registro fijo en `https://davdelcar.github.io/beautiful-ui/r/vX.Y.Z/`.
 
+## 2.2.0 — 2026-11-22
+
+### Añadido
+- El MCP resuelve componentes por export de React y muestra el import público, las firmas de TypeScript, los tipos auxiliares del mismo archivo y las notas de uso.
+- La guía rápida, el catálogo compacto y los ejemplos de app y galería se publican junto al registro.
+- La receta de chat conecta el historial, el envío y los reintentos a la aplicación. El listado admite datos del producto, acciones y estados de carga, vacío y error.
+- CI comprueba el contrato del MCP y prueba la instalación del registro con shadcn en Next.js App Router.
+
+### Corregido
+- `DataTable` ordena el listado antes de paginar y abre el detalle con Enter. Escape devuelve el foco a la fila.
+- `ToastProvider` monta su portal después de hidratar, lo que permite prerenderizar en Next.js.
+- `get_design_tokens` devuelve el CSS completo del kit.
+
 ## 2.1.1 — 2026-11-20
 
 ### Corregido

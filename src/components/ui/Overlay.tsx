@@ -353,6 +353,8 @@ export const useToast = () => useContext(ToastCtx);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
+  const [host, setHost] = useState<HTMLElement | null>(null);
+  useEffect(() => setHost(document.body), []);
   const push = useCallback((text: ReactNode, action?: ToastItem["action"]) => {
     const id = Date.now() + Math.random();
     setItems((xs) => [...xs, { id, text, action }]);
@@ -361,7 +363,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastCtx.Provider value={push}>
       {children}
-      {createPortal(
+      {host && createPortal(
         <div className="fixed right-4 bottom-4 z-[60] flex flex-col items-end gap-2" aria-live="polite">
           {items.map((t) => (
             <div
@@ -393,7 +395,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             </div>
           ))}
         </div>,
-        document.body,
+        host,
       )}
     </ToastCtx.Provider>
   );
