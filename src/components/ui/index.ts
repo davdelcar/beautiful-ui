@@ -26,6 +26,9 @@ export {
   Alert,
   EmptyState,
   Progress,
+  Meter,
+  Timeline,
+  type TimelineEvent,
   Spinner,
   Stat,
   type Status,
@@ -36,8 +39,8 @@ export { Sheet } from "./Sheet";
 export { CommandPalette, useHotkey, modKey, type CommandItem, type CommandGroup } from "./Command";
 export { IconButton, ThemeToggle, useTheme, setTheme, setAccent, ACCENTS, type Accent, themeScript, ThemeScript } from "./Actions";
 export { Breadcrumb, Pagination, pageRange, Stepper, type Crumb } from "./Navigation";
-export { Separator, Skeleton, SkeletonText, Collapse, Collapsible, Accordion, ScrollArea, type AccordionItem } from "./Layout";
-export { Slider, NumberInput, MultiSelect, Dropzone, formatBytes, type MultiOption } from "./Inputs";
+export { Separator, Skeleton, SkeletonText, Collapse, Collapsible, Accordion, ScrollArea, Resizable, ResizablePanel, ResizableHandle, type AccordionItem } from "./Layout";
+export { Slider, NumberInput, PasswordInput, OtpInput, MultiSelect, Dropzone, formatBytes, type MultiOption } from "./Inputs";
 export { Calendar, DatePicker, DateRangePicker, addDays, addMonths, startOfDay, sameDay, type DateRange, type RangePreset } from "./Dates";
 export { ChartFrame, LineChart, BarChart, Sparkline, SegmentedBar, niceTicks, type Series } from "./Charts";
 export { Floating, useRovingFocus, type Side, type Align } from "./floating";

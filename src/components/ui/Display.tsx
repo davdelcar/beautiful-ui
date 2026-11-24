@@ -1,8 +1,20 @@
 import type { ReactNode } from "react";
+import { Meter as SDKMeter, MeterIndicator, MeterLabel, MeterTrack, MeterValue } from "@ui-sdk/react/meter";
+import { Progress as SDKProgress, ProgressIndicator } from "@ui-sdk/react/progress";
+import {
+  Timeline as SDKTimeline,
+  TimelineConnector,
+  TimelineDescription,
+  TimelineItem,
+  TimelineMarker,
+  TimelineTime,
+  TimelineTitle,
+} from "@ui-sdk/react/timeline";
 import { Monogram } from "@/components/atoms/EntityChip";
 import { cn } from "@/lib/utils";
 import { Sparkline } from "./Charts";
-import { IconAlert, IconCheckCircle, IconInfo } from "./icons";
+import { IconAlert, IconCheck, IconCheckCircle, IconInfo } from "./icons";
+import { useUI } from "./i18n";
 
 /* ── Card ──────────────────────────────────────────────────
  * Las cards de la librería: `rounded-card bg-surface` + sombra semántica y
@@ -189,12 +201,113 @@ export function Progress({
   className?: string;
 }) {
   return (
-    <div role="progressbar" aria-label={label} aria-valuenow={value} aria-valuemin={0} aria-valuemax={100} className={cn("h-1 overflow-hidden rounded-full bg-hover-2", className)}>
-      <div
+    <SDKProgress value={value} aria-label={label} className={cn("h-1 overflow-hidden rounded-full bg-hover-2", className)}>
+      <ProgressIndicator
         className={cn("h-full rounded-full", { accent: "bg-accent", green: "bg-green", orange: "bg-orange", red: "bg-red" }[tone])}
-        style={{ width: `${Math.max(0, Math.min(100, value))}%`, transition: "width 500ms cubic-bezier(0.23,1,0.32,1)" }}
+        style={{ transition: "width 500ms cubic-bezier(0.23,1,0.32,1)" }}
       />
-    </div>
+    </SDKProgress>
+  );
+}
+
+/* ── Meter ─────────────────────────────────────────────── */
+
+const TONE_BG = { accent: "bg-accent", green: "bg-green", orange: "bg-orange", red: "bg-red" } as const;
+
+/**
+ * Medida dentro de un rango conocido (cuota, almacenamiento, uso del plan) sobre
+ * UI SDK: rol `meter`, valor formateado con Intl en el idioma del kit. Con
+ * `thresholds` el relleno pasa a naranja y a rojo al cruzar cada umbral.
+ * Para tareas que avanzan hasta terminar, usa Progress.
+ */
+export function Meter({
+  value,
+  min = 0,
+  max = 100,
+  label,
+  format,
+  tone = "accent",
+  thresholds,
+  className,
+}: {
+  value: number;
+  min?: number;
+  max?: number;
+  /** nombre visible (y accesible) de la medida */
+  label: ReactNode;
+  /** opciones de Intl.NumberFormat o función; por defecto, porcentaje */
+  format?: Intl.NumberFormatOptions | ((value: number) => string);
+  tone?: keyof typeof TONE_BG;
+  /** [aviso, peligro] en unidades del valor: naranja desde el primero, rojo desde el segundo */
+  thresholds?: [number, number];
+  className?: string;
+}) {
+  const { locale } = useUI();
+  const t = thresholds ? (value >= thresholds[1] ? "red" : value >= thresholds[0] ? "orange" : tone) : tone;
+  return (
+    <SDKMeter value={value} min={min} max={max} format={format ?? { style: "percent" }} locale={locale} className={cn("flex flex-col gap-1.5", className)}>
+      <div className="flex items-baseline justify-between gap-3">
+        <MeterLabel className="text-meta text-ink-2">{label}</MeterLabel>
+        <MeterValue className="text-meta font-medium text-ink tabular-nums" />
+      </div>
+      <MeterTrack className="h-1.5 overflow-hidden rounded-full bg-hover-2">
+        <MeterIndicator className={cn("h-full rounded-full transition-[width,background-color] duration-500 ease-[var(--ease-out-strong)]", TONE_BG[t])} />
+      </MeterTrack>
+    </SDKMeter>
+  );
+}
+
+/* ── Timeline ──────────────────────────────────────────── */
+
+export type TimelineEvent = {
+  title: ReactNode;
+  time?: ReactNode;
+  /** fecha de máquina para <time datetime> */
+  dateTime?: string;
+  description?: ReactNode;
+  /** en un proceso: hecho, en curso o pendiente */
+  status?: "complete" | "current" | "upcoming";
+  /** icono propio en el marcador (sustituye al punto) */
+  icon?: ReactNode;
+};
+
+/**
+ * Historial de actividad o pasos de un proceso sobre UI SDK: lista navegable
+ * con flechas, `aria-current="step"` en el evento en curso. Línea `line`,
+ * tramos hechos en acento.
+ */
+export function Timeline({ items, className }: { items: TimelineEvent[]; className?: string }) {
+  return (
+    <SDKTimeline className={cn("flex flex-col", className)}>
+      {items.map((e, i) => (
+        <TimelineItem
+          key={i}
+          status={e.status}
+          className="bui-ring group/tl relative grid grid-cols-[20px_minmax(0,1fr)] gap-x-3 rounded-control pb-5 outline-none last:pb-0 focus-visible:shadow-[0_0_0_2px_var(--page),0_0_0_4px_var(--accent)]"
+        >
+          <TimelineMarker
+            className={cn(
+              "relative z-10 mt-0.5 flex size-5 items-center justify-center rounded-full",
+              e.icon
+                ? "bg-surface text-ink-2 shadow-btn data-complete:text-accent-ink data-current:text-accent-ink"
+                : "before:size-2 before:rounded-full before:bg-line-strong data-complete:bg-accent data-complete:before:hidden data-current:before:size-2.5 data-current:before:bg-accent data-current:before:shadow-[0_0_0_4px_var(--accent-tint)]",
+            )}
+          >
+            {e.icon ?? (e.status === "complete" && <IconCheck size={11} strokeWidth={3} className="text-white" />)}
+          </TimelineMarker>
+          {i < items.length - 1 && (
+            <TimelineConnector className="absolute top-6 bottom-0.5 left-[9.5px] w-px bg-line data-complete:bg-accent" />
+          )}
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+              <TimelineTitle className="text-body font-medium text-ink group-data-upcoming/tl:text-ink-2">{e.title}</TimelineTitle>
+              {e.time && <TimelineTime dateTime={e.dateTime} className="text-micro text-ink-3 tabular-nums">{e.time}</TimelineTime>}
+            </div>
+            {e.description && <TimelineDescription className="text-meta text-ink-2">{e.description}</TimelineDescription>}
+          </div>
+        </TimelineItem>
+      ))}
+    </SDKTimeline>
   );
 }
 

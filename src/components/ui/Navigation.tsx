@@ -1,4 +1,5 @@
 import { Fragment, type ReactNode } from "react";
+import { Pagination as SDKPagination, PaginationEllipsis, PaginationLink, PaginationNext, PaginationPrevious } from "@ui-sdk/react/pagination";
 import { cn } from "@/lib/utils";
 import { useLabels } from "./i18n";
 import { IconCheck, IconChevronRight } from "./icons";
@@ -75,12 +76,12 @@ export function Pagination({
 }) {
   const L = useLabels();
   if (total <= 1) return null;
-  const btn = "inline-flex h-7 min-w-7 items-center justify-center rounded-control px-2 text-body tabular-nums transition-colors disabled:pointer-events-none disabled:opacity-40";
+  const btn = "inline-flex h-7 min-w-7 items-center justify-center rounded-control px-2 text-body tabular-nums transition-colors aria-disabled:pointer-events-none aria-disabled:opacity-40";
   return (
-    <nav aria-label={L.page} className={cn("flex items-center gap-1", className)}>
-      <button type="button" className={cn(btn, "text-ink-2 hover:bg-hover-2")} disabled={page <= 1} onClick={() => onChange(page - 1)} aria-label={L.previous}>
+    <SDKPagination page={page} pageCount={total} onPageChange={onChange} aria-label={L.page} className={cn("flex items-center gap-1", className)}>
+      <PaginationPrevious className={cn(btn, "text-ink-2 hover:bg-hover-2")} aria-label={L.previous}>
         <IconChevronRight size={14} className="rotate-180" />
-      </button>
+      </PaginationPrevious>
       {compact ? (
         <span className="px-1.5 text-meta text-ink-2 tabular-nums">
           {L.page} {page} {L.of} {total}
@@ -88,26 +89,20 @@ export function Pagination({
       ) : (
         pageRange(page, total).map((p, i) =>
           p === null ? (
-            <span key={`gap-${i}`} className="px-1 text-ink-3" aria-hidden>
-              …
-            </span>
+            <PaginationEllipsis key={`gap-${i}`} className="px-1 text-ink-3" />
           ) : (
-            <button
+            <PaginationLink
               key={p}
-              type="button"
-              aria-current={p === page ? "page" : undefined}
-              onClick={() => onChange(p)}
+              page={p}
               className={cn(btn, p === page ? "bg-surface font-medium text-ink shadow-btn" : "text-ink-2 hover:bg-hover-2")}
-            >
-              {p}
-            </button>
+            />
           ),
         )
       )}
-      <button type="button" className={cn(btn, "text-ink-2 hover:bg-hover-2")} disabled={page >= total} onClick={() => onChange(page + 1)} aria-label={L.next}>
+      <PaginationNext className={cn(btn, "text-ink-2 hover:bg-hover-2")} aria-label={L.next}>
         <IconChevronRight size={14} />
-      </button>
-    </nav>
+      </PaginationNext>
+    </SDKPagination>
   );
 }
 

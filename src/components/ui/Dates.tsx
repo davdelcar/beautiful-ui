@@ -16,6 +16,14 @@ export const addMonths = (d: Date, n: number) => {
 };
 export const sameDay = (a?: Date | null, b?: Date | null) => !!a && !!b && a.toDateString() === b.toDateString();
 const startOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
+function clampDay(date: Date, min?: Date, max?: Date) {
+  const day = startOfDay(date);
+  const first = min && startOfDay(min);
+  const last = max && startOfDay(max);
+  if (first && day < first) return first;
+  if (last && day > last) return last;
+  return day;
+}
 /** primer día de la semana: domingo en EE. UU., lunes en el resto */
 const weekStart = (locale: string) => (/^en-US$|^en$/i.test(locale) ? 0 : 1);
 
@@ -44,8 +52,8 @@ export function Calendar(props: CalendarProps) {
   const { min, max, className } = props;
   const single = props.mode !== "range";
   const anchor = single ? (props.value as Date | null) : (props.value as DateRange).from;
-  const [month, setMonth] = useState(() => startOfMonth(anchor ?? new Date()));
-  const [focus, setFocus] = useState<Date>(() => startOfDay(anchor ?? new Date()));
+  const [focus, setFocus] = useState(() => clampDay(anchor ?? new Date(), min, max));
+  const [month, setMonth] = useState(() => startOfMonth(focus));
   const [hover, setHover] = useState<Date | null>(null);
   const grid = useRef<HTMLDivElement>(null);
   const keyboard = useRef(!!props.autoFocus);
@@ -73,10 +81,12 @@ export function Calendar(props: CalendarProps) {
     grid.current?.querySelector<HTMLButtonElement>(`[data-day="${focus.toDateString()}"]`)?.focus();
   }, [focus, month]);
 
-  const moveFocus = (d: Date) => {
-    keyboard.current = true;
-    setFocus(d);
-    if (d.getMonth() !== month.getMonth() || d.getFullYear() !== month.getFullYear()) setMonth(startOfMonth(d));
+  const moveFocus = (d: Date, viaKeyboard: boolean) => {
+    const next = clampDay(d, min, max);
+    keyboard.current = viaKeyboard;
+    setFocus(next);
+    const nextMonth = startOfMonth(next);
+    if (nextMonth.getTime() !== month.getTime()) setMonth(nextMonth);
   };
 
   const onKey = (e: KeyboardEvent) => {
@@ -92,13 +102,13 @@ export function Calendar(props: CalendarProps) {
     };
     if (map[e.key]) {
       e.preventDefault();
-      moveFocus(map[e.key]());
+      moveFocus(map[e.key](), true);
     }
   };
 
   const pick = (d: Date) => {
     if (disabled(d)) return;
-    setFocus(d);
+    moveFocus(d, false);
     if (single) return (props.onChange as (d: Date) => void)(d);
     const r = props.value as DateRange;
     const onChange = props.onChange as (r: DateRange) => void;
@@ -110,17 +120,17 @@ export function Calendar(props: CalendarProps) {
   const rangeEnd = range?.to ?? (range?.from && hover ? hover : null);
   const [lo, hi] = range?.from && rangeEnd ? (range.from <= rangeEnd ? [range.from, rangeEnd] : [rangeEnd, range.from]) : [null, null];
 
-  const navBtn = "flex size-7 items-center justify-center rounded-control text-ink-2 transition-colors hover:bg-hover-2 hover:text-ink";
+  const navBtn = "flex size-7 items-center justify-center rounded-control text-ink-2 transition-colors enabled:hover:bg-hover-2 enabled:hover:text-ink disabled:opacity-40";
   return (
     <div className={cn("w-[252px] select-none", className)}>
       <div className="mb-2 flex items-center justify-between">
-        <button type="button" className={navBtn} aria-label={L.prevMonth} onClick={() => setMonth(addMonths(month, -1))}>
+        <button type="button" className={navBtn} aria-label={L.prevMonth} disabled={!!min && month <= startOfMonth(min)} onClick={() => moveFocus(addMonths(focus, -1), false)}>
           <IconChevronRight size={14} className="rotate-180" />
         </button>
         <span className="text-body font-medium text-ink first-letter:uppercase" aria-live="polite">
           {title}
         </span>
-        <button type="button" className={navBtn} aria-label={L.nextMonth} onClick={() => setMonth(addMonths(month, 1))}>
+        <button type="button" className={navBtn} aria-label={L.nextMonth} disabled={!!max && month >= startOfMonth(max)} onClick={() => moveFocus(addMonths(focus, 1), false)}>
           <IconChevronRight size={14} />
         </button>
       </div>

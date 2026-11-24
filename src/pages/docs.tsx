@@ -100,7 +100,7 @@ export const DOCS: Record<string, Doc> = {
       P("Field.children", "(id: string) => ReactNode", "Recibe el id para enlazar label e input."),
       P("Input.leading / trailing", "ReactNode", "Icono o Kbd dentro del campo."),
       P("Select.value", "T | null", "Valor controlado."),
-      P("Select.options", "{ value: T; label: ReactNode }[]", "Para listas largas usa Combobox."),
+      P("Select.options", "{ value: T; label: ReactNode; disabled? }[]", "UI SDK: flechas, Inicio/Fin y búsqueda al teclear. Para listas largas usa Combobox."),
       P("Select.placeholder", "string", "Texto sin selección.", '"Seleccionar"'),
     ],
   },
@@ -114,11 +114,11 @@ export const DOCS: Record<string, Doc> = {
 <RadioGroup value={plan} onChange={setPlan}
   options={[{ value: "m", label: "Mensual" }, { value: "y", label: "Anual" }]} />`,
     props: [
-      P("checked", "boolean", "Checkbox y Switch son controlados."),
+      P("checked", "boolean", "Checkbox y Switch son controlados (UI SDK: rol ARIA e input nativo para formularios)."),
       P("onChange", "(checked: boolean) => void", "En RadioGroup recibe el valor."),
       P("indeterminate", "boolean", "Solo Checkbox: estado parcial."),
       P("label", "ReactNode", "Etiqueta clicable."),
-      P("disabled", "boolean", "También por opción en RadioGroup."),
+      P("disabled", "boolean", "También por opción en RadioGroup; flechas mueven y marcan, saltando las deshabilitadas."),
     ],
   },
 
@@ -216,10 +216,10 @@ export const DOCS: Record<string, Doc> = {
 const toast = useToast(); // requiere <ToastProvider> en la raíz
 toast("Cambios guardados", { label: "Deshacer", onClick: undo });`,
     props: [
-      P("Menu.trigger", "({ open, toggle }) => ReactNode", "Pinta el disparador."),
+      P("Menu.trigger", "({ open }) => ReactNode", "Pinta el disparador (un único elemento); UI SDK lo abre al pulsar y con ↓, y le devuelve el foco. toggle se mantiene por compatibilidad."),
       P("Menu.items", "MenuItem[]", '{ label, icon?, shortcut?, danger?, onSelect? } · { type: "label" } · { type: "separator" }'),
       P("Tooltip", '{ content; side?: "top" | "bottom" }', "Retardo de 250ms."),
-      P("Dialog", "{ open; onClose; title; description?; footer? }", "<dialog> nativo: foco atrapado y Escape."),
+      P("Dialog", "{ open; onClose; title; description?; footer? }", "UI SDK: capa superior, foco atrapado, Escape y clic fuera; el foco vuelve al disparador."),
       P("toast", "(text, action?) => void", "action = { label, onClick }."),
     ],
   },
@@ -263,7 +263,7 @@ toast("Cambios guardados", { label: "Deshacer", onClick: undo });`,
   <SidebarNav fill />
 </Sheet>`,
     props: [
-      P("open / onClose", "boolean / () => void", "Controlado; Escape y clic fuera cierran."),
+      P("open / onClose", "boolean / () => void", "Controlado (Drawer de UI SDK); Escape, clic fuera y deslizar hacia el borde cierran."),
       P("side", '"right" | "left" | "bottom"', "bottom = hoja inferior (móvil).", '"right"'),
       P("title / description / footer", "ReactNode", "Cabecera con botón de cerrar."),
       P("width", "number", "Ancho en px, limitado al viewport.", "400"),
@@ -386,7 +386,7 @@ const { locale, labels } = useUI();`,
 </ContextMenu>`,
     props: [
       P("items", "MenuItem[]", "Mismo formato que Menu."),
-      P("children", "ReactNode", "Zona sensible al clic derecho y a Mayús+F10."),
+      P("children", "ReactNode", "Zona sensible al clic derecho, pulsación larga y Mayús+F10 (UI SDK)."),
     ],
   },
 
@@ -416,15 +416,66 @@ const { locale, labels } = useUI();`,
     code: `import { Slider, NumberInput, MultiSelect, Dropzone } from "@/components/ui";
 
 <Slider value={vol} onChange={setVol} min={0} max={100} showValue format={(v) => v + " %"} />
+<Slider value={price} onChange={setPrice} step={5} showValue format={(v) => v + " €"} /> {/* [desde, hasta] */}
 <NumberInput value={qty} onChange={setQty} min={0} max={99} suffix="uds" />
 <MultiSelect value={mods} onChange={setMods}
   options={[{ value: "crm", label: "CRM" }, { value: "ai", label: "Asistente IA" }]} />
 <Dropzone files={files} onFilesChange={setFiles} accept="image/*" maxSize={5e6} hint="Hasta 5 MB" />`,
     props: [
-      P("Slider", "{ value; onChange; min; max; step; showValue?; format? }", "input range nativo: teclado y lector gratis."),
-      P("NumberInput", "{ value: number | null; onChange; min?; max?; step?; suffix? }", "↑ ↓ (Mayús ×10); valida al salir."),
+      P("Slider", "{ value: number | [desde, hasta]; onChange; min; max; step; showValue?; format? }", "UI SDK: flechas, RePág/AvPág ×10, Inicio/Fin; con un par, rango de dos tiradores."),
+      P("NumberInput", "{ value: number | null; onChange; min?; max?; step?; suffix? }", "UI SDK: ↑ ↓ (Mayús o RePág ×10), mantener pulsado repite; entiende «1.234,5» según el idioma y redondea a `step` (usa 0.1 para decimales)."),
       P("MultiSelect", "{ value: T[]; onChange; options; maxChips? }", "Retroceso en el buscador quita el último."),
       P("Dropzone", "{ files; onFilesChange; accept?; multiple?; maxSize? }", "Controlado; rechaza y avisa de archivos grandes."),
+    ],
+  },
+
+  acceso: {
+    file: "Acceso.tsx",
+    code: `import { PasswordInput, OtpInput, Field } from "@/components/ui";
+
+<Field label="Contraseña">
+  {(id) => <PasswordInput id={id} value={pw} onChange={setPw} autoComplete="new-password" />}
+</Field>
+<Field label="Código de verificación">
+  {(id) => <OtpInput id={id} value={code} onChange={setCode} onComplete={verify} groupSize={3} />}
+</Field>`,
+    props: [
+      P("PasswordInput", '{ value; onChange; autoComplete?: "current-password" | "new-password"; placeholder?; name?; required? }', "UI SDK: botón ver/ocultar (no envía el formulario), aviso de Bloq Mayús y se oculta al enviar para que el navegador ofrezca guardarla.", '"current-password"'),
+      P("OtpInput", '{ value; onChange; onComplete?; length?; groupSize?; pattern?: "digits" | "letters" | "alphanumeric" }', "UI SDK: un único input nativo (pegar, autocompletar del SMS, deshacer) pintado como casillas; onComplete al rellenar todas.", "length 6, digits"),
+    ],
+  },
+
+  actividad: {
+    file: "Actividad.tsx",
+    code: `import { Meter, Timeline } from "@/components/ui";
+
+<Meter label="Almacenamiento" value={7.4} max={10} format={(v) => v + " de 10 GB"} thresholds={[7, 9]} />
+<Meter label="Llamadas a la API" value={42} /> {/* porcentaje por defecto */}
+
+<Timeline items={[
+  { title: "Pedido recibido", time: "09:12", status: "complete" },
+  { title: "Preparando envío", time: "Ahora", status: "current", description: "Almacén de Valencia" },
+  { title: "En reparto", status: "upcoming" },
+]} />`,
+    props: [
+      P("Meter", "{ value; min?; max?; label; format?; tone?; thresholds?: [aviso, peligro] }", "UI SDK, rol meter: medida dentro de un rango (cuota, uso). Para algo que avanza hasta terminar, Progress.", "max 100, porcentaje"),
+      P("Timeline", '{ items: { title; time?; dateTime?; description?; status?: "complete" | "current" | "upcoming"; icon? }[] }', "UI SDK: lista navegable con flechas; el evento current lleva aria-current=\"step\"."),
+    ],
+  },
+
+  paneles: {
+    file: "Paneles.tsx",
+    code: `import { Resizable, ResizablePanel, ResizableHandle } from "@/components/ui";
+
+<Resizable autoSaveId="chat-layout" className="h-dvh">
+  <ResizablePanel defaultSize={30} minSize={20} collapsible>…</ResizablePanel>
+  <ResizableHandle aria-label="Redimensionar lista" />
+  <ResizablePanel minSize={40}>…</ResizablePanel>
+</Resizable>`,
+    props: [
+      P("Resizable", '{ orientation?: "horizontal" | "vertical"; autoSaveId?; onLayoutCommit? }', "UI SDK. Dale altura al grupo; los grupos se anidan (editor sobre terminal).", "horizontal"),
+      P("ResizablePanel", "{ defaultSize?; minSize?; maxSize?; collapsible?; collapsedSize? }", 'Tamaños en % o con unidad ("240px"). collapsible: Intro o doble clic en el asa lo pliega.'),
+      P("ResizableHandle", "{ aria-label? }", "Flechas (Mayús = paso largo), Inicio/Fin; nómbralo por lo que redimensiona."),
     ],
   },
 

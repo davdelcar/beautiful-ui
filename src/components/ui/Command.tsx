@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
+import { isComposing, matchesShortcut } from "@ui-sdk/core";
 import { cn } from "@/lib/utils";
 import { Kbd } from "./Field";
 import { IconSearch } from "./icons";
@@ -28,8 +29,8 @@ export function useHotkey(key: string, handler: (e: KeyboardEvent) => void, { mo
   saved.current = handler;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() !== key.toLowerCase()) return;
-      if (mod ? !(isMac() ? e.metaKey : e.ctrlKey) : e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.defaultPrevented || isComposing(e)) return;
+      if (!matchesShortcut(e, `${mod ? "Mod+" : ""}${e.shiftKey ? "Shift+" : ""}${key === " " ? "Space" : key}`, isMac())) return;
       const t = e.target as HTMLElement;
       if (!mod && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
       e.preventDefault();

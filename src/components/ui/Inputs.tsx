@@ -1,16 +1,20 @@
-import { useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { Fragment, useId, useRef, useState, type ReactNode } from "react";
+import { NumberInput as SDKNumberInput, NumberInputControl, NumberInputDecrement, NumberInputIncrement } from "@ui-sdk/react/number-input";
+import { OTPInput as SDKOTPInput, OTPInputGroup, OTPInputSeparator, OTPInputSlot } from "@ui-sdk/react/otp-input";
+import { PasswordInput as SDKPasswordInput, PasswordInputControl, PasswordInputToggle } from "@ui-sdk/react/password-input";
+import { Slider as SDKSlider, SliderControl, SliderIndicator, SliderThumb, SliderTrack } from "@ui-sdk/react/slider";
 import { cn } from "@/lib/utils";
 import { fieldBase } from "./Field";
 import { useLabels, useUI } from "./i18n";
-import { Floating } from "./floating";
-import { IconCheck, IconPlus, IconSearch, IconX } from "./icons";
+import { Floating, useLabelFor } from "./floating";
+import { IconCheck, IconEye, IconEyeOff, IconMinus, IconPlus, IconSearch, IconX } from "./icons";
 import { matches, useListNav } from "./listbox";
 import { Chevron, usePopover } from "./Overlay";
 
 /* ── Slider ────────────────────────────────────────────── */
 
 /** Deslizador nativo (accesible por defecto) con pista rellena en acento. */
-export function Slider({
+export function Slider<V extends number | [number, number]>({
   value,
   onChange,
   min = 0,
@@ -20,10 +24,12 @@ export function Slider({
   showValue = false,
   format = (v: number) => String(v),
   className,
-  ...aria
+  id,
+  "aria-label": ariaLabel,
 }: {
-  value: number;
-  onChange: (value: number) => void;
+  /** un número, o `[desde, hasta]` para un rango con dos tiradores */
+  value: V;
+  onChange: (value: V) => void;
   min?: number;
   max?: number;
   step?: number;
@@ -32,33 +38,51 @@ export function Slider({
   showValue?: boolean;
   format?: (value: number) => string;
   className?: string;
+  /** enlaza con `<label htmlFor>` (Field / FormField) */
   id?: string;
   "aria-label"?: string;
 }) {
-  const fill = ((value - min) / (max - min || 1)) * 100;
+  const L = useLabels();
+  const { locale } = useUI();
+  const root = useRef<HTMLDivElement>(null);
+  useLabelFor(root, id, "[role=slider]");
+  const range = Array.isArray(value);
+  const shown = range ? `${format(value[0])} – ${format(value[1])}` : format(value as number);
   return (
-    <div className={cn("flex items-center gap-3", className)}>
-      <input
-        type="range"
-        className="bui-range min-w-0 flex-1"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        disabled={disabled}
-        aria-valuetext={format(value)}
-        onChange={(e) => onChange(Number(e.target.value))}
-        style={{ "--fill": `${fill}%` } as CSSProperties}
-        {...aria}
-      />
-      {showValue && <span className="min-w-10 text-right font-mono text-meta text-ink-2 tabular-nums">{format(value)}</span>}
-    </div>
+    <SDKSlider
+      ref={root}
+      value={value}
+      onValueChange={(v) => onChange(v as V)}
+      min={min}
+      max={max}
+      step={step}
+      largeStep={step * 10}
+      disabled={disabled}
+      format={format}
+      locale={locale}
+      className={cn("group/slider flex items-center gap-3 data-disabled:opacity-50", className)}
+    >
+      <SliderControl className="relative flex h-8 min-w-0 flex-1 cursor-pointer touch-none items-center select-none group-data-disabled/slider:cursor-default">
+        <SliderTrack className="relative h-1 w-full rounded-full bg-hover-2">
+          <SliderIndicator className="absolute inset-y-0 rounded-full bg-accent" />
+        </SliderTrack>
+        {(range ? [0, 1] : [0]).map((i) => (
+          <SliderThumb
+            key={i}
+            index={i}
+            aria-label={range ? `${ariaLabel ? ariaLabel + ": " : ""}${i ? L.rangeTo : L.rangeFrom}` : ariaLabel}
+            className={`absolute size-4 rounded-full bg-white shadow-[0_0_0_0.5px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.25)] transition-[transform,box-shadow] duration-150 ease-[var(--ease-out-strong)]
+              data-dragging:scale-112 has-[:focus-visible]:shadow-[0_0_0_1px_var(--accent),0_0_0_4px_var(--accent-tint)]`}
+          />
+        ))}
+      </SliderControl>
+      {showValue && <span className="min-w-10 text-right text-body whitespace-nowrap text-ink-2 tabular-nums">{shown}</span>}
+    </SDKSlider>
   );
 }
 
 /* ── NumberInput ───────────────────────────────────────── */
 
-const clamp = (n: number, min?: number, max?: number) => Math.min(max ?? Infinity, Math.max(min ?? -Infinity, n));
 
 /** Campo numérico con − / +, ↑ ↓ (Mayús = ×10) y límites. `null` = vacío. */
 export function NumberInput({
@@ -87,45 +111,46 @@ export function NumberInput({
   "aria-invalid"?: boolean;
 }) {
   const L = useLabels();
-  const [draft, setDraft] = useState<string | null>(null);
-  const bump = (dir: 1 | -1, mult = 1) => onChange(clamp(Number(((value ?? min ?? 0) + dir * step * mult).toFixed(10)), min, max));
-  const side = "flex w-7 items-center justify-center text-ink-3 transition-colors hover:bg-hover-2 hover:text-ink disabled:pointer-events-none disabled:opacity-40";
+  const { locale } = useUI();
+  /* pasos como el resto de botones dentro de un campo (⌘K, borrar): chip de 24px a la derecha */
+  const side = "flex size-6 items-center justify-center rounded-chip text-ink-3 transition-colors hover:bg-hover-2 hover:text-ink data-disabled:pointer-events-none data-disabled:opacity-40";
   return (
-    <div className={cn(fieldBase, "flex h-8 items-stretch overflow-hidden p-0 focus-within:border-accent focus-within:bg-surface focus-within:shadow-[0_0_0_3px_var(--accent-tint)]", className)}>
-      <button type="button" tabIndex={-1} className={side} aria-label={L.decrease} disabled={disabled || (min !== undefined && (value ?? min) <= min)} onClick={() => bump(-1)}>
-        <span className="h-px w-2.5 bg-current" />
-      </button>
-      <input
+    <SDKNumberInput
+      value={value}
+      onValueChange={(v) => onChange(v)}
+      min={min}
+      max={max}
+      step={step}
+      largeStep={step * 10}
+      disabled={disabled}
+      locale={locale}
+      wheel={false}
+      className={cn(
+        fieldBase,
+        "flex h-8 items-stretch overflow-hidden p-0 focus-within:border-accent focus-within:bg-surface focus-within:shadow-[0_0_0_3px_var(--accent-tint)] data-disabled:opacity-50",
+        aria["aria-invalid"] && "border-red focus-within:border-red focus-within:shadow-[0_0_0_3px_var(--red-tint)]",
+        className,
+      )}
+    >
+      <NumberInputControl
         id={id}
-        inputMode="decimal"
-        type="number"
-        disabled={disabled}
-        className="bui-number min-w-0 flex-1 bg-transparent text-center text-body text-ink tabular-nums outline-none focus-visible:shadow-none"
-        value={draft ?? (value ?? "")}
-        min={min}
-        max={max}
-        step={step}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => {
-          if (draft === null) return;
-          const n = draft.trim() === "" ? null : Number(draft.replace(",", "."));
-          onChange(n === null || Number.isNaN(n) ? null : clamp(n, min, max));
-          setDraft(null);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-            e.preventDefault();
-            setDraft(null);
-            bump(e.key === "ArrowUp" ? 1 : -1, e.shiftKey ? 10 : 1);
-          } else if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-        }}
+        role="spinbutton"
+        aria-valuenow={value ?? undefined}
+        aria-valuemin={min}
+        aria-valuemax={max}
+        className="min-w-0 flex-1 bg-transparent pl-2.5 text-body text-ink tabular-nums outline-none focus-visible:shadow-none"
         {...aria}
       />
-      {suffix && <span className="flex items-center pr-1 text-meta text-ink-3">{suffix}</span>}
-      <button type="button" tabIndex={-1} className={side} aria-label={L.increase} disabled={disabled || (max !== undefined && (value ?? -Infinity) >= max)} onClick={() => bump(1)}>
-        <IconPlus size={12} />
-      </button>
-    </div>
+      {suffix && <span className="flex items-center pr-1.5 text-body text-ink-3">{suffix}</span>}
+      <span className="flex items-center gap-px pr-1">
+        <NumberInputDecrement tabIndex={-1} className={side} aria-label={L.decrease}>
+          <IconMinus size={12} />
+        </NumberInputDecrement>
+        <NumberInputIncrement tabIndex={-1} className={side} aria-label={L.increase}>
+          <IconPlus size={12} />
+        </NumberInputIncrement>
+      </span>
+    </SDKNumberInput>
   );
 }
 
@@ -375,5 +400,157 @@ export function Dropzone({
         </ul>
       )}
     </div>
+  );
+}
+
+/* ── PasswordInput ─────────────────────────────────────── */
+
+/**
+ * Contraseña sobre UI SDK: botón de ver/ocultar (no envía el formulario),
+ * aviso de Bloq Mayús y se oculta sola al enviar para que el navegador ofrezca guardarla.
+ * Misma piel que Input (pozo `field`).
+ */
+export function PasswordInput({
+  value,
+  onChange,
+  onBlur,
+  placeholder,
+  autoComplete = "current-password",
+  name,
+  required,
+  disabled,
+  className,
+  id,
+  ...aria
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onBlur?: () => void;
+  placeholder?: string;
+  /** "current-password" para entrar, "new-password" para registrarse o cambiarla */
+  autoComplete?: "current-password" | "new-password" | "off";
+  name?: string;
+  required?: boolean;
+  disabled?: boolean;
+  className?: string;
+  id?: string;
+  "aria-label"?: string;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
+}) {
+  const L = useLabels();
+  return (
+    <SDKPasswordInput
+      value={value}
+      onValueChange={(v: string) => onChange(v)}
+      autoComplete={autoComplete}
+      name={name}
+      required={required}
+      disabled={disabled}
+      className={cn(
+        fieldBase,
+        "group/pw flex h-8 items-stretch overflow-hidden p-0 focus-within:border-accent focus-within:bg-surface focus-within:shadow-[0_0_0_3px_var(--accent-tint)] data-disabled:opacity-55",
+        aria["aria-invalid"] && "border-red focus-within:border-red focus-within:shadow-[0_0_0_3px_var(--red-tint)]",
+        className,
+      )}
+    >
+      <PasswordInputControl
+        id={id}
+        placeholder={placeholder}
+        onBlur={onBlur}
+        className="min-w-0 flex-1 bg-transparent pl-2.5 text-body text-ink outline-none placeholder:text-ink-3"
+        {...aria}
+      />
+      <span aria-hidden className="hidden items-center pr-1 text-micro font-medium text-orange group-data-capslock/pw:flex">⇪ {L.capsLock}</span>
+      <span className="flex items-center pr-1">
+        <PasswordInputToggle
+          className="flex size-6 items-center justify-center rounded-chip text-ink-3 outline-none transition-colors hover:bg-hover-2 hover:text-ink focus-visible:bg-hover-2 focus-visible:text-ink"
+          aria-label={L.showPassword}
+        >
+          <IconEye size={14} className="group-data-visible/pw:hidden" />
+          <IconEyeOff size={14} className="hidden group-data-visible/pw:block" />
+        </PasswordInputToggle>
+      </span>
+    </SDKPasswordInput>
+  );
+}
+
+/* ── OtpInput ──────────────────────────────────────────── */
+
+/**
+ * Código de un solo uso (2FA, verificación por email) sobre UI SDK: un único
+ * input nativo con `autocomplete="one-time-code"` (pegar, autocompletar del SMS,
+ * deshacer) pintado como casillas. `onComplete` salta al rellenar todas.
+ */
+export function OtpInput({
+  value,
+  onChange,
+  onComplete,
+  length = 6,
+  groupSize,
+  pattern = "digits",
+  disabled,
+  className,
+  id,
+  "aria-label": ariaLabel,
+  "aria-invalid": invalid,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  /** se llama con el código completo, p. ej. para verificarlo */
+  onComplete?: (value: string) => void;
+  length?: number;
+  /** separa las casillas en grupos (3 → «123–456») */
+  groupSize?: number;
+  pattern?: "digits" | "letters" | "alphanumeric";
+  disabled?: boolean;
+  className?: string;
+  id?: string;
+  "aria-label"?: string;
+  "aria-invalid"?: boolean;
+}) {
+  const L = useLabels();
+  const size = groupSize && groupSize < length ? groupSize : length;
+  const groups = Array.from({ length: Math.ceil(length / size) }, (_, g) => Array.from({ length: Math.min(size, length - g * size) }, (_, i) => g * size + i));
+  return (
+    <SDKOTPInput
+      id={id}
+      value={value}
+      onValueChange={(v: string) => onChange(v)}
+      onValueCommit={(v: string) => onComplete?.(v)}
+      maxLength={length}
+      pattern={pattern}
+      inputMode={pattern === "digits" ? "numeric" : "text"}
+      disabled={disabled}
+      aria-label={ariaLabel ?? L.otpCode}
+      aria-invalid={invalid || undefined}
+      className={cn("group/otp inline-flex items-center gap-2 data-disabled:opacity-55", className)}
+    >
+      {groups.map((slots, g) => (
+        <Fragment key={g}>
+          {g > 0 && <OTPInputSeparator className="h-px w-2.5 rounded-full bg-line-strong" />}
+          <OTPInputGroup className="flex gap-1.5">
+            {slots.map((i) => (
+              <OTPInputSlot
+                key={i}
+                index={i}
+                className={cn(
+                  `relative flex h-10 w-9 items-center justify-center rounded-control border border-line bg-field text-[17px] font-medium text-ink tabular-nums
+                   shadow-[0_1px_2px_rgba(0,0,0,0.035)] transition-[border-color,box-shadow,background-color] duration-150
+                   data-active:border-accent data-active:bg-surface data-active:shadow-[0_0_0_3px_var(--accent-tint)]`,
+                  invalid && "border-red data-active:border-red data-active:shadow-[0_0_0_3px_var(--red-tint)]",
+                )}
+                render={(props, state) => (
+                  <div {...props}>
+                    {state.char}
+                    {state.hasFakeCaret && <span aria-hidden className="bui-caret h-4.5 w-px bg-ink" />}
+                  </div>
+                )}
+              />
+            ))}
+          </OTPInputGroup>
+        </Fragment>
+      ))}
+    </SDKOTPInput>
   );
 }

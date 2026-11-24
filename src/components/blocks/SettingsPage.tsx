@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { z } from "zod";
 import { Form, FormField, FormSubmit, useZodForm } from "@/components/form";
 import {
@@ -71,12 +71,17 @@ export default function SettingsPage() {
   const theme = useTheme();
   const [active, setActive] = useState<SectionId>("perfil");
   const [avatar, setAvatar] = useState<File[]>([]);
+  const [savedAvatar, setSavedAvatar] = useState<File[]>([]);
   const [notif, setNotif] = useState({ email: true, push: false, digest: true, mentions: true });
-  const [accent, setAccentState] = useState<Accent>(() => (document.documentElement.dataset.accent as Accent) ?? "blue");
+  const [accent, setAccentState] = useState<Accent>("blue");
   const [density, setDensity] = useState<"comfy" | "compact">("comfy");
   const [lang, setLang] = useState<"es" | "en">("es");
   const [confirm, setConfirm] = useState(false);
   const [confirmText, setConfirmText] = useState("");
+  useEffect(() => {
+    const applied = document.documentElement.dataset.accent;
+    setAccentState(ACCENTS.find((value) => value === applied) ?? "blue");
+  }, []);
 
   const form = useZodForm(profile, { defaultValues: { name: "Ana López", email: "ana@acme.com", role: "admin", bio: "" } });
   const bio = form.watch("bio") ?? "";
@@ -84,6 +89,10 @@ export default function SettingsPage() {
   const go = (id: SectionId) => {
     setActive(id);
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const closeConfirmation = () => {
+    setConfirm(false);
+    setConfirmText("");
   };
 
   return (
@@ -117,14 +126,22 @@ export default function SettingsPage() {
         </nav>
 
         <div className="flex min-w-0 flex-col gap-4">
-          <Form form={form} onSubmit={async (v: Profile) => (await new Promise((r) => setTimeout(r, 600)), toast(`Perfil de ${v.name} guardado`))}>
+          <Form form={form} onSubmit={async (v: Profile) => {
+            await new Promise((r) => setTimeout(r, 600));
+            form.reset(v);
+            setSavedAvatar(avatar);
+            toast(`Perfil de ${v.name} guardado en esta sesión`);
+          }}>
             <Section
               id="perfil"
               title="Perfil"
               description="Cómo te ven el resto de miembros."
               footer={
                 <>
-                  <Button type="button" size="sm" variant="quiet" onClick={() => form.reset()}>
+                  <Button type="button" size="sm" variant="quiet" disabled={form.formState.isSubmitting} onClick={() => {
+                    form.reset();
+                    setAvatar(savedAvatar);
+                  }}>
                     Descartar
                   </Button>
                   <FormSubmit>Guardar cambios</FormSubmit>
@@ -254,19 +271,19 @@ export default function SettingsPage() {
 
       <Dialog
         open={confirm}
-        onClose={() => (setConfirm(false), setConfirmText(""))}
+        onClose={closeConfirmation}
         title="¿Eliminar tu cuenta?"
         description="Escribe ELIMINAR para confirmar. Esta acción no se puede deshacer."
         footer={
           <>
-            <Button size="sm" onClick={() => setConfirm(false)}>
+            <Button size="sm" onClick={closeConfirmation}>
               Cancelar
             </Button>
             <Button
               size="sm"
               disabled={confirmText !== "ELIMINAR"}
               className="bg-red-solid text-white hover:brightness-110"
-              onClick={() => (setConfirm(false), setConfirmText(""), toast("Cuenta programada para eliminación"))}
+              onClick={() => (closeConfirmation(), toast("Confirmación completada en la demo. No se ha eliminado ninguna cuenta."))}
             >
               Eliminar
             </Button>

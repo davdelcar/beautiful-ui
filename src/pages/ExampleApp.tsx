@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createStickToBottom } from "@ui-sdk/core";
 import ApprovalCard, { type ApprovalQuestion } from "@/components/primitives/ApprovalCard";
 import DiffTable from "@/components/primitives/DiffTable";
 import InsightCards from "@/components/primitives/InsightCards";
@@ -13,6 +14,7 @@ import {
   Avatar,
   CommandPalette,
   IconHome,
+  IconInbox,
   IconMenu,
   IconMoon,
   IconSettings,
@@ -24,6 +26,7 @@ import {
   Card,
   CardHeader,
   DataTable,
+  EmptyState,
   FilterChips,
   IconBell,
   IconButton,
@@ -44,6 +47,7 @@ import {
   Tabs,
   ThemeToggle,
   useToast,
+  buttonVariants,
   type Column,
   type Status,
 } from "@/components/ui";
@@ -103,6 +107,11 @@ const ORDERS: Order[] = [
   { id: "5", task: "Pedido de conos", date: "14 abr", status: "done", owner: "Cone King", color: "#e08a3c", amount: 2453.44 },
 ];
 const STATUS_LABEL: Record<Status, string> = { todo: "Por hacer", progress: "En curso", done: "Completada" };
+const PERIOD_STATS = {
+  d: { revenue: "$6,230", orders: "164", average: "$37.99" },
+  w: { revenue: "$48,210", orders: "1,284", average: "$37.55" },
+  m: { revenue: "$203,840", orders: "5,396", average: "$37.78" },
+};
 
 const QUESTIONS: ApprovalQuestion[] = [
   { q: "¿Reduzco el pedido de menta para agosto?", type: "radio", options: ["Sí, un 20%", "Sí, un 10%", "Mantener igual"] },
@@ -128,8 +137,17 @@ function Dashboard() {
   const [tab, setTab] = useState<"orders" | "records" | "diff">("orders");
   const [filter, setFilter] = useState<"all" | Status>("all");
   const [sel, setSel] = useState<Set<string>>(new Set());
+  const [orders, setOrders] = useState(ORDERS);
+  const stats = PERIOD_STATS[range];
 
-  const count = (s: Status) => ORDERS.filter((o) => o.status === s).length;
+  const count = (s: Status) => orders.filter((o) => o.status === s).length;
+  const removeOrder = (order: Order) => {
+    setOrders((previous) => previous.filter((item) => item.id !== order.id));
+    setSel((previous) => new Set([...previous].filter((id) => id !== order.id)));
+    toast("Tarea eliminada", { label: "Deshacer", onClick: () => {
+      setOrders((previous) => [...previous, order].sort((a, b) => Number(a.id) - Number(b.id)));
+    } });
+  };
   const columns: Column<Order>[] = [
     { key: "task", header: "Tarea", width: "minmax(0,1.5fr)", render: (r) => <span className="truncate font-medium">{r.task}</span> },
     { key: "date", header: "Fecha", width: "84px", render: (r) => <span className="text-ink-2 tabular-nums">{r.date}</span> },
@@ -150,7 +168,7 @@ function Dashboard() {
       key: "more",
       header: "",
       width: "44px",
-      render: () => (
+      render: (order) => (
         <Menu
           align="end"
           trigger={({ toggle }) => (
@@ -159,10 +177,10 @@ function Dashboard() {
             </IconButton>
           )}
           items={[
-            { label: "Editar", icon: <IconPencil size={14} /> },
-            { label: "Preguntar al agente", icon: <IconSparkle size={13} /> },
+            { label: "Editar", icon: <IconPencil size={14} />, onSelect: () => toast("La edición de tareas no está conectada en esta demo.") },
+            { label: "Preguntar al agente", icon: <IconSparkle size={13} />, onSelect: () => toast("Abre el asistente para probar una conversación.") },
             { type: "separator" },
-            { label: "Eliminar", icon: <IconTrash size={14} />, danger: true, onSelect: () => toast("Tarea eliminada", { label: "Deshacer", onClick: () => {} }) },
+            { label: "Eliminar", icon: <IconTrash size={14} />, danger: true, onSelect: () => removeOrder(order) },
           ]}
         />
       ),
@@ -188,9 +206,9 @@ function Dashboard() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 @2xl:grid-cols-4" style={{ animation: "fade-up 500ms cubic-bezier(0.23,1,0.32,1) 60ms both" }}>
-        <Stat label="Ingresos" value="$48,210" delta="+12.4%" trend="up" />
-        <Stat label="Pedidos" value="1,284" delta="+4.0%" trend="up" />
-        <Stat label="Ticket medio" value="$37.55" delta="−1.8%" trend="down" />
+        <Stat label="Ingresos" value={stats.revenue} delta={range === "w" ? "+12.4%" : undefined} trend="up" />
+        <Stat label="Pedidos" value={stats.orders} delta={range === "w" ? "+4.0%" : undefined} trend="up" />
+        <Stat label="Ticket medio" value={stats.average} delta={range === "w" ? "−1.8%" : undefined} trend="down" />
         <Stat label="Stock crítico" value="7" delta="SKUs" />
       </div>
 
@@ -217,7 +235,7 @@ function Dashboard() {
           value={tab}
           onChange={setTab}
           options={[
-            { value: "orders", label: "Tareas", count: ORDERS.length },
+            { value: "orders", label: "Tareas", count: orders.length },
             { value: "records", label: "Proveedores" },
             { value: "diff", label: "Cambios propuestos", count: 3 },
           ]}
@@ -225,11 +243,12 @@ function Dashboard() {
         {tab === "orders" && (
           <DataTable
             columns={columns}
-            rows={ORDERS}
+            rows={orders}
             rowKey={(r) => r.id}
             isVisible={(r) => filter === "all" || r.status === filter}
             selected={sel}
             onSelectedChange={setSel}
+            empty={<EmptyState icon={<IconInbox />} title="Sin tareas con este estado" />}
             minWidth={680}
             toolbar={
               <>
@@ -237,20 +256,20 @@ function Dashboard() {
                   value={filter}
                   onChange={setFilter}
                   options={[
-                    { value: "all", label: "Todas", count: ORDERS.length },
+                    { value: "all", label: "Todas", count: orders.length },
                     { value: "todo", label: "Por hacer", dot: "#f09a2f", count: count("todo") },
                     { value: "progress", label: "En curso", dot: "#16a6c7", count: count("progress") },
                     { value: "done", label: "Completadas", dot: "#25a878", count: count("done") },
                   ]}
                 />
-                <Button size="xs" variant="accent" onClick={() => toast("Tarea creada")}>
+                <Button size="xs" variant="accent" onClick={() => toast("La creación de tareas no está conectada en esta demo.")}>
                   <IconPlus size={12} /> Nueva
                 </Button>
               </>
             }
             footer={
               <>
-                <span>{sel.size ? `${sel.size} seleccionadas` : `${ORDERS.length} tareas`}</span>
+                <span>{sel.size ? `${sel.size} seleccionadas` : `${filter === "all" ? orders.length : count(filter)} tareas`}</span>
                 {sel.size > 0 && (
                   <Button size="xs" variant="quiet" onClick={() => setSel(new Set())}>
                     Limpiar selección
@@ -273,62 +292,74 @@ function Dashboard() {
 
 /* ── panel del asistente ──────────────────────────────── */
 
-function Assistant({ onClose }: { onClose: () => void }) {
+function Assistant({ onClose, onNewChat, title, messages, onSend }: {
+  onClose: () => void;
+  onNewChat: () => void;
+  title: string | null;
+  messages: Msg[];
+  onSend: (text: string) => void;
+}) {
   const toast = useToast();
-  const [msgs, setMsgs] = useState<Msg[]>([]);
+  const threadRef = useRef<HTMLDivElement>(null);
+  const [thread] = useState(() => createStickToBottom({ initial: title !== null }));
+  useEffect(() => {
+    if (threadRef.current) return thread.connect(threadRef.current);
+  }, [thread]);
+  const send = (text: string) => {
+    thread.scrollToBottom();
+    onSend(text);
+  };
   return (
-    <aside className="flex h-full w-[380px] shrink-0 flex-col border-l border-line bg-page" aria-label="Asistente">
+    <aside className="flex h-full w-full flex-col bg-page" aria-label="Asistente">
       <div className="flex h-13 shrink-0 items-center gap-2 border-b border-line pr-2 pl-3.5">
         <IconSparkle className="text-accent" />
-        <span className="flex-1 text-[13px] font-semibold text-ink">Asistente</span>
-        <IconButton label="Nuevo chat" onClick={() => setMsgs([])}>
+        <span className="min-w-0 flex-1 truncate text-body font-semibold text-ink">{title ?? "Asistente"}</span>
+        <IconButton label="Nuevo chat" onClick={onNewChat}>
           <IconPlus size={15} />
         </IconButton>
         <IconButton label="Cerrar" onClick={onClose}>
           <IconX size={15} />
         </IconButton>
       </div>
-      <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-3.5 py-4">
-        <div className="self-end rounded-[14px] rounded-br-[4px] bg-hover-2 px-3 py-2 text-[14px] text-ink">Compara la menta con chips con el verano pasado</div>
-        <ThinkingState
-          variant="Steps"
-          active="Pensando"
-          done="Pensó durante 4s"
-          rows={[
-            { primary: "Leí 3 veranos de ventas", secondary: "ventas_2024.csv", mono: true },
-            { primary: "Consulté tendencias", secondary: "trends.google.com" },
-            { primary: "Comparé con la media de temporada" },
-          ]}
-        />
-        <StreamingText fill loop={false} content={FIRST_REPLY} labels={{ sources: "fuentes", followUps: "Siguientes preguntas" }} followUps={["¿Qué sabores venden mejor en invierno?", "Prepara el pedido de agosto"]} />
-        <div className="[&>*]:max-w-none">
-          <ApprovalCard
-            questions={QUESTIONS}
-            labels={{ skip: "Omitir", continue: "Continuar", send: "Enviar", customPlaceholder: "Otra respuesta…", sentMessage: "Respuestas enviadas" }}
-            onSubmitted={() => toast("Pedido de agosto actualizado", { label: "Deshacer", onClick: () => {} })}
+      <div ref={threadRef} className="flex flex-1 flex-col gap-5 overflow-y-auto px-3.5 py-4">
+        {title === null && <>
+          <div className="self-end rounded-[14px] rounded-br-[4px] bg-hover-2 px-3 py-2 text-[14px] text-ink">Compara la menta con chips con el verano pasado</div>
+          <ThinkingState
+            variant="Steps"
+            active="Pensando"
+            done="Pensó durante 4s"
+            rows={[
+              { primary: "Leí 3 veranos de ventas", secondary: "ventas_2024.csv", mono: true },
+              { primary: "Consulté tendencias", secondary: "trends.google.com" },
+              { primary: "Comparé con la media de temporada" },
+            ]}
           />
-        </div>
-        {msgs.map((m) =>
+          <StreamingText fill loop={false} content={FIRST_REPLY} labels={{ sources: "fuentes", followUps: "Siguientes preguntas" }} followUps={["¿Qué sabores venden mejor en invierno?", "Prepara el pedido de agosto"]} onFollowUp={send} />
+          <div className="[&>*]:max-w-none">
+            <ApprovalCard
+              questions={QUESTIONS}
+              labels={{ skip: "Omitir", continue: "Continuar", send: "Enviar", customPlaceholder: "Otra respuesta…", sentMessage: "Respuestas enviadas" }}
+              onSubmitted={() => toast("Respuestas registradas en esta demo.")}
+            />
+          </div>
+        </>}
+        {title !== null && messages.length === 0 && <p className="text-body text-ink-3">Escribe un mensaje para empezar.</p>}
+        {messages.map((m) =>
           m.role === "user" ? (
             <div key={m.id} className="self-end rounded-[14px] rounded-br-[4px] bg-hover-2 px-3 py-2 text-[14px] text-ink">
               {m.text}
             </div>
           ) : (
-            <StreamingText key={m.id} fill loop={false} content={words(m.text)} sources={[]} followUps={[]} />
+            <StreamingText key={m.id} fill loop={false} content={words(m.text)} sources={[]} followUps={[]} showActions={false} />
           ),
         )}
       </div>
       <div className="shrink-0 px-3 pb-3">
         <PromptBar
           demo={false}
-          placeholder="Pregunta, @ fuentes, / comandos"
-          onSend={(text) =>
-            setMsgs((xs) => [
-              ...xs,
-              { id: Date.now(), role: "user", text },
-              { id: Date.now() + 1, role: "agent", text: "Entendido. Reviso los datos de ventas y te propongo los siguientes pasos en un momento." },
-            ])
-          }
+          textOnly
+          placeholder="Escribe un mensaje"
+          onSend={send}
         />
       </div>
     </aside>
@@ -341,11 +372,45 @@ export default function ExampleApp() {
   const [nav, setNav] = useState("home");
   const [chat, setChat] = useState<string | null>(null);
   const [assistant, setAssistant] = useState(true);
+  const [assistantModal, setAssistantModal] = useState(false);
+  const [histories, setHistories] = useState<Record<string, Msg[]>>({});
   const [mobileNav, setMobileNav] = useState(false);
   const [palette, setPalette] = useState(false);
   const toast = useToast();
   const theme = useTheme();
   useHotkey("k", () => setPalette((o) => !o));
+
+  const openAssistant = () => {
+    if (window.matchMedia("(min-width: 80rem)").matches) setAssistant(true);
+    else setAssistantModal(true);
+  };
+  const newChat = () => {
+    setHistories((previous) => ({ ...previous, "Nuevo chat": [] }));
+    setChat("Nuevo chat");
+    setMobileNav(false);
+    openAssistant();
+  };
+  const pickChat = (label: string) => {
+    setChat(label);
+    setMobileNav(false);
+    openAssistant();
+  };
+  const key = chat ?? "example";
+  const assistantView = (onClose: () => void) => (
+    <Assistant key={key} title={chat} messages={histories[key] ?? []} onNewChat={newChat} onClose={onClose} onSend={(text) => {
+      setHistories((previous) => {
+        const history = previous[key] ?? [];
+        return {
+          ...previous,
+          [key]: [
+            ...history,
+            { id: history.length, role: "user", text },
+            { id: history.length + 1, role: "agent", text: "Respuesta de ejemplo. La demo no consulta datos ni ejecuta acciones." },
+          ],
+        };
+      });
+    }} />
+  );
 
   const sidebar = (mobile: boolean) => (
     <SidebarNav
@@ -358,12 +423,10 @@ export default function ExampleApp() {
         if (mobile) setMobileNav(false);
       }}
       activeTitle={chat}
-      onPick={(_, label) => {
-        setChat(label);
-        if (mobile) setMobileNav(false);
-      }}
-      onNewChat={() => setAssistant(true)}
+      onPick={(_, label) => pickChat(label)}
+      onNewChat={newChat}
       footerLabel="Mejorar plan"
+      onFooterClick={() => toast("El cambio de plan no está conectado en esta demo.")}
       className={mobile ? undefined : "border-r border-line"}
     />
   );
@@ -371,7 +434,7 @@ export default function ExampleApp() {
   return (
     <div className="flex h-screen overflow-hidden bg-page">
       <div className="hidden md:flex">{sidebar(false)}</div>
-      <Sheet open={mobileNav} onClose={() => setMobileNav(false)} side="left" width={224} bare>
+      <Sheet open={mobileNav} onClose={() => setMobileNav(false)} side="left" width={224} title="Navegación" bare>
         {sidebar(true)}
       </Sheet>
 
@@ -401,18 +464,18 @@ export default function ExampleApp() {
               <IconSearch size={16} />
             </IconButton>
           </span>
-          <IconButton label="Notificaciones">
+          <IconButton label="Notificaciones" onClick={() => toast("Sin notificaciones nuevas")}>
             <IconBell size={16} />
           </IconButton>
           <ThemeToggle />
-          {!assistant && (
-            <IconButton label="Abrir asistente" onClick={() => setAssistant(true)}>
+          <span className={assistant ? "flex xl:hidden" : "flex"}>
+            <IconButton label="Abrir asistente" onClick={openAssistant}>
               <IconSparkle className="text-accent" />
             </IconButton>
-          )}
-          <a href="#/" className="hidden shrink-0 2xl:block">
-            <Button size="sm" className="whitespace-nowrap">Sistema de diseño</Button>
-          </a>
+          </span>
+          <span className="hidden shrink-0 2xl:flex">
+            <a href="#/" className={buttonVariants({ size: "sm", className: "whitespace-nowrap" })}>Sistema de diseño</a>
+          </span>
         </header>
         <main className="@container flex-1 overflow-y-auto bg-canvas">
           <Dashboard />
@@ -420,10 +483,13 @@ export default function ExampleApp() {
       </div>
 
       {assistant && (
-        <div className="hidden xl:flex">
-          <Assistant onClose={() => setAssistant(false)} />
+        <div className="hidden w-[380px] shrink-0 border-l border-line xl:flex">
+          {assistantView(() => setAssistant(false))}
         </div>
       )}
+      <Sheet open={assistantModal} onClose={() => setAssistantModal(false)} title="Asistente" bare>
+        {assistantView(() => setAssistantModal(false))}
+      </Sheet>
 
       <CommandPalette
         open={palette}
@@ -434,7 +500,7 @@ export default function ExampleApp() {
             label: "Navegar",
             items: [
               { id: "home", label: "Inicio", icon: <IconHome size={15} />, onSelect: () => (setNav("home"), setChat(null)) },
-              { id: "settings", label: "Ajustes", icon: <IconSettings size={15} />, onSelect: () => toast("Ajustes aún no disponibles") },
+              { id: "settings", label: "Ajustes", icon: <IconSettings size={15} />, onSelect: () => (location.hash = "#/plantillas/ajustes") },
               { id: "ds", label: "Sistema de diseño", icon: <IconChevronRight size={15} />, onSelect: () => (location.hash = "#/") },
             ],
           },
@@ -444,13 +510,13 @@ export default function ExampleApp() {
               id: `chat-${i}`,
               label: r.label,
               icon: <IconSparkle size={15} />,
-              onSelect: () => setChat(r.label),
+              onSelect: () => pickChat(r.label),
             })),
           },
           {
             label: "Acciones",
             items: [
-              { id: "new", label: "Nuevo chat con el asistente", icon: <IconPlus size={15} />, keywords: ["crear", "preguntar"], onSelect: () => setAssistant(true) },
+              { id: "new", label: "Nuevo chat con el asistente", icon: <IconPlus size={15} />, keywords: ["crear", "preguntar"], onSelect: newChat },
               { id: "theme", label: theme.dark ? "Tema claro" : "Tema oscuro", icon: <IconMoon size={15} />, keywords: ["tema", "dark", "modo"], onSelect: theme.toggle },
               { id: "notif", label: "Ver notificaciones", icon: <IconBell size={15} />, onSelect: () => toast("Sin notificaciones nuevas") },
             ],

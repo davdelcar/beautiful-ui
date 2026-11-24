@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createStickToBottom, isComposing } from "@ui-sdk/core";
 
 /* ─────────────────────────────────────────────────────────
  * CHAT — interactive panel with tabs, replies, and composer.
@@ -103,6 +104,12 @@ export default function ChatComposer({
   const [submitted, setSubmitted] = useState(l.initialPrompt);
   const [tab, setTab] = useState(suggestions[0] ?? "");
   const inputRef = useRef<HTMLInputElement>(null);
+  const threadRef = useRef<HTMLDivElement>(null);
+  const [thread] = useState(() => createStickToBottom({ initial: false }));
+
+  useEffect(() => {
+    if (threadRef.current) return thread.connect(threadRef.current);
+  }, [thread]);
 
   useEffect(() => {
     let t: ReturnType<typeof setTimeout>;
@@ -119,6 +126,7 @@ export default function ChatComposer({
   const send = () => {
     if (!canSend) return;
     const text = draft.trim();
+    thread.scrollToBottom();
     setSubmitted(text);
     onSend?.(text);
     setDraft("");
@@ -164,7 +172,7 @@ export default function ChatComposer({
       </div>
 
       {/* conversation — fixed region so the card never changes shape */}
-      <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-3 pt-2.5 pb-1">
+      <div ref={threadRef} className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-3 pt-2.5 pb-1">
         {/* user bubble — right aligned, soft block */}
         <div className="flex justify-end pl-14">
           <div
@@ -211,7 +219,7 @@ export default function ChatComposer({
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === "Enter") send();
+              if (event.key === "Enter" && !isComposing(event)) send();
             }}
             placeholder={l.placeholder}
             aria-label="Chat prompt"

@@ -108,7 +108,16 @@ export function DataTable<T>({
                   aria-label="Seleccionar todo"
                   checked={allOn}
                   indeterminate={!allOn && someOn}
-                  onChange={(on) => onSelectedChange!(on ? new Set(visible.map(rowKey)) : new Set())}
+                  disabled={visible.length === 0}
+                  onChange={(on) => {
+                    const next = new Set(selected);
+                    for (const row of visible) {
+                      const key = rowKey(row);
+                      if (on) next.add(key);
+                      else next.delete(key);
+                    }
+                    onSelectedChange!(next);
+                  }}
                 />
               </span>
             )}

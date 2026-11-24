@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { bindLayer, isComposing } from "@ui-sdk/core";
 import { createShader, playSweep, accentChain, ACCENTS } from "glimm";
 
 /* The built-in "prism" palette is only cyan→indigo→magenta, so a sweep
@@ -365,18 +366,22 @@ export default function PromptBar({
     input.style.overflowY = contentHeight > maxHeight ? "auto" : "hidden";
   }, [draft, expanded]);
 
-  /* clicking anywhere outside the composer closes the open menus */
+  /* Keep the composer and its menus in the same dismissal layer. The
+   * self-running demo never registers one: it would sit above (and steal
+   * Escape from) any dialog the user opens while the loop plays. */
   useEffect(() => {
-    if (!modelOpen && !plusOpen) return;
-    const close = (event: PointerEvent) => {
-      if (!(event.target as Element).closest("[data-promptbar]")) {
+    if ((!modelOpen && !menu) || (auto && !modelOpen && !plusOpen) || !composerAnchorRef.current) return;
+    return bindLayer(composerAnchorRef.current, {
+      onDismiss: (reason) => {
         setModelOpen(false);
         setPlusOpen(false);
-      }
-    };
-    document.addEventListener("pointerdown", close);
-    return () => document.removeEventListener("pointerdown", close);
-  }, [modelOpen, plusOpen]);
+        setDismissed(true);
+        if (reason === "escape-key") {
+          (modelOpen ? modelRef.current : inputRef.current)?.focus();
+        }
+      },
+    });
+  }, [modelOpen, menu, auto, plusOpen]);
 
   const closeMenus = () => {
     setPlusOpen(false);
@@ -620,6 +625,7 @@ export default function PromptBar({
               setPlusOpen(false);
             }}
             onKeyDown={(event) => {
+              if (event.defaultPrevented || isComposing(event)) return;
               if (menu && rows.length > 0) {
                 if (event.key === "ArrowDown" || event.key === "ArrowUp") {
                   event.preventDefault();
@@ -638,7 +644,7 @@ export default function PromptBar({
                 closeMenus();
                 return;
               }
-              if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+              if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
                 send();
               }

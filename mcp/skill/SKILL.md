@@ -8,7 +8,7 @@ description: Sistema de diseño Beautiful UI (React 19 + Tailwind v4, registro s
 Sistema de diseño para apps: lienzo frío casi blanco, cards blancas con borde hairline, sombras suaves en capas, tinta neutra y color semántico con moderación. Claro/oscuro, 5 acentos, contraste WCAG AA verificado con axe, textos en español o inglés.
 
 - Galería: https://davdelcar.github.io/beautiful-ui/ · app: `#/app` · plantillas: `#/plantillas/<login|listado|analitica|ajustes|alta|error>`
-- Registro shadcn: https://davdelcar.github.io/beautiful-ui/r/registry.json (versionado: `/r/v2.2.0/<item>.json`)
+- Registro shadcn: https://davdelcar.github.io/beautiful-ui/r/registry.json (versionado: `/r/v2.3.0/<item>.json`)
 - Tokens DTCG: https://davdelcar.github.io/beautiful-ui/tokens.json · Código: https://github.com/davdelcar/beautiful-ui
 
 ## Flujo de trabajo
@@ -58,7 +58,17 @@ Actualizar: el mismo `add` con `--overwrite`. Si `npx shadcn` falla con ENOTEMPT
 - **`DatePicker`, `DateRangePicker`** — Mantén el valor como fecha o rango. Asocia una etiqueta con `Field` o `FormField` y pasa el ID al control.
 - **`Field`, `FormField`** — Conecta al control el ID que entrega el componente. En un `FormField`, usa `f.input` para inputs nativos y `f.value`, `f.onChange`, `f.onBlur` y `f.id` para controles personalizados.
 - **`IconButton`** — Pasa siempre `label` con el nombre de la acción. Para ocultar el botón por breakpoint, aplica la visibilidad a un contenedor.
+- **`SearchField`** — Conecta `value` y `onValueChange` al filtro de la aplicación. El botón de borrado usa UI SDK para devolver el foco al campo. Usa `label` y `clearLabel` para adaptar los nombres accesibles.
+- **`Tabs`, `Segmented`, `FilterChips`** — Controla la selección con `value` y `onChange`. Las flechas activan la pestaña enfocada. En los chips, las flechas mueven el foco y Enter aplica el filtro.
 - **`Checkbox`, `Switch`** — Usa `aria-label` cuando el control carezca de texto visible.
+- **`RadioGroup`** — Sin etiqueta visible del grupo, pasa `aria-label`. Las flechas mueven y marcan; usa `disabled` por opción en vez de ocultarla.
+- **`Menu`** — `trigger` debe devolver un único elemento (`Button` o `IconButton` con `tooltip={false}`); UI SDK lo abre al pulsar y con ↓, y devuelve el foco al cerrar. No llames a `toggle`.
+- **`Dialog`, `Sheet`** — Controla `open` y cierra en `onClose`; Escape, clic fuera y (en Sheet) deslizar también llaman a `onClose`. Los desplegables del kit funcionan dentro.
+- **`PasswordInput`** — Usa `autoComplete="new-password"` en registro y cambio de contraseña. Dentro de `FormField`, pasa `id`, `name`, `value`, `onChange`, `onBlur` y `aria-invalid` desde `f`.
+- **`OtpInput`** — Verifica en `onComplete`; no añadas un botón «Verificar» salvo como respaldo. Con `aria-invalid` las casillas se pintan en rojo.
+- **`Meter`** — Para medidas dentro de un rango (almacenamiento, asientos, cuota); para algo que avanza hasta terminar, `Progress`. `thresholds={[aviso, peligro]}` pinta naranja y rojo.
+- **`Timeline`** — Para historial de actividad o el estado de un proceso; para pasos de un formulario, `Stepper`.
+- **`Resizable`, `ResizablePanel`, `ResizableHandle`** — Da altura al grupo y nombre a cada asa con `aria-label`. Usa `autoSaveId` para recordar el reparto entre visitas.
 - **`Progress`** — Pasa `label` para identificar qué operación está en progreso.
 - **`DataTable`** — Usa `rowKey` estable y `sortValue` en las columnas ordenables. Si paginas, ordena el conjunto filtrado antes de recortarlo y pasa `sort` y `onSortChange`.
 - **`PromptBar`** — Usa `demo={false}` y conecta `onSend` al producto. Usa `textOnly` si tu integración solo envía texto, y `disabled` para bloquear el envío durante una petición.
@@ -91,7 +101,7 @@ Animaciones: `pop-in` (menús), `fade-up` (entradas, escalonadas), `fade-in`, `s
 
 **Acciones**: `Button` (`variant` primary · secondary · ghost · accent · success · quiet; `size` xs · sm · md; un solo primary por vista) · `IconButton` (`label`, `tone`) · `ThemeToggle`.
 
-**Campos** (todos con la misma piel: pozo `bg-field`, borde `line`, anillo de acento de 3px al enfocar o abrir): `Field` (`label`, `hint`, `error`, hijos `(id) => …`) · `Input` (`leading`, `trailing`) · `Textarea` · `Select` (≤ 7 opciones, ↑ ↓ Enter) · `Combobox` (con buscador, `hint`, `icon`, `keywords`) · `MultiSelect` (chips) · `Checkbox` · `RadioGroup` · `Switch` · `Slider` (`showValue`, `format`) · `NumberInput` (`min`, `max`, `step`, `suffix`) · `Dropzone` (`files`, `onFilesChange`, `accept`, `maxSize`) · `Kbd`.
+**Campos** (todos con la misma piel: pozo `bg-field`, borde `line`, anillo de acento de 3px al enfocar o abrir): `Field` (`label`, `hint`, `error`, hijos `(id) => …`) · `Input` (`leading`, `trailing`) · `Textarea` · `Select` (≤ 7 opciones, ↑ ↓ Enter) · `Combobox` (con buscador, `hint`, `icon`, `keywords`) · `MultiSelect` (chips) · `Checkbox` · `RadioGroup` · `Switch` · `Slider` (`showValue`, `format`; `value={[desde, hasta]}` para un rango de dos tiradores) · `NumberInput` (`min`, `max`, `step`, `suffix`; interpreta números según el `locale` de `UIProvider` y redondea a `step`: para decimales, `step={0.1}`) · `PasswordInput` (`autoComplete` current-password · new-password; ver/ocultar y aviso de Bloq Mayús) · `OtpInput` (`length`, `groupSize`, `onComplete`; un solo input con autocompletado del SMS) · `Dropzone` (`files`, `onFilesChange`, `accept`, `maxSize`) · `Kbd`.
 
 **Fechas**: `DatePicker` (`value: Date | null`, `min`, `max`) · `DateRangePicker` (`value: { from, to, preset? }`, presets Hoy/7/30/90 días/mes) · `Calendar` (`mode="single" | "range"`) · utilidades `addDays`, `addMonths`, `startOfDay`, `sameDay`.
 
@@ -110,9 +120,9 @@ Para controles no nativos usa `f.value` / `f.onChange` y pásales `id={f.id}`. V
 
 **Navegación**: `Tabs` · `Segmented` · `FilterChips` · `Breadcrumb` (`items`, `max`) · `Pagination` (`page`, `total`, `onChange`, `compact`) · `Stepper` (`steps`, `current`, `onStepClick`, `orientation`) · `CommandPalette` + `useHotkey("k", …)` + `modKey()` (toda app con navegación debería tener ⌘K).
 
-**Overlays**: `Menu` (`trigger={({open,toggle}) => …}`, `items: MenuItem[]`) · `ContextMenu` (clic derecho) · `Popover` (`width`, `align`, hijos o `(close) => …`) · `Tooltip` · `Dialog` (`open`, `onClose`, `title`, `footer`) · `Sheet` (`side` right · left · bottom, `bare`) · `useToast()` → `toast(texto, { label, onClick }?)`.
+**Overlays** (UI SDK, capa superior: nunca se recortan ni necesitan z-index): `Menu` (`trigger={({ open }) => <Button>…</Button>}` con un único elemento, `items: MenuItem[]`) · `ContextMenu` (clic derecho) · `Popover` (`width`, `align`, hijos o `(close) => …`) · `Tooltip` · `Dialog` (`open`, `onClose`, `title`, `footer`) · `Sheet` (`side` right · left · bottom, `bare`; se cierra deslizando) · `useToast()` → `toast(texto, { label, onClick }?)`.
 
-**Datos**: `DataTable<T>` (`columns: { key, header, width, align, render, sortValue? }[]`, `rows`, `rowKey`, `isVisible`, `selected`/`onSelectedChange`, `onRowClick`, `empty`, `toolbar`, `footer`) · `Card` + `CardHeader`/`CardBody`/`CardFooter` · `Stat` (`label`, `value`, `delta`, `trend`, `goodWhen`, `spark`) · `StatusPill` (todo · progress · done) · `Tag` · `Avatar`/`AvatarStack` · `Progress` (`label`) · `Spinner` · `Alert` (`tone`) · `EmptyState` · `Skeleton`/`SkeletonText` · `Accordion` · `Collapsible` · `Separator` (`label`) · `ScrollArea`.
+**Datos**: `DataTable<T>` (`columns: { key, header, width, align, render, sortValue? }[]`, `rows`, `rowKey`, `isVisible`, `selected`/`onSelectedChange`, `onRowClick`, `empty`, `toolbar`, `footer`) · `Card` + `CardHeader`/`CardBody`/`CardFooter` · `Stat` (`label`, `value`, `delta`, `trend`, `goodWhen`, `spark`) · `StatusPill` (todo · progress · done) · `Tag` · `Avatar`/`AvatarStack` · `Progress` (`label`; tareas que terminan) · `Meter` (`label`, `value`, `max`, `format`, `thresholds`; cuotas y uso) · `Timeline` (`items: { title, time?, description?, status? }[]`) · `Spinner` · `Alert` (`tone`) · `EmptyState` · `Skeleton`/`SkeletonText` · `Accordion` · `Collapsible` · `Separator` (`label`) · `ScrollArea` · `Resizable` + `ResizablePanel` (`defaultSize`, `minSize`, `collapsible`) + `ResizableHandle` (`aria-label`; dale altura al grupo, `autoSaveId` recuerda el reparto).
 
 **Gráficas** (todas con leyenda desde 2 series, tooltip con todas las series y botón «Ver tabla»):
 - `LineChart` (`data`, `x`, `series: { key, label, color? }[]`, `area`, `endLabels`, `format`, `xFormat`, `title`, `description`, `height`) para evolución.

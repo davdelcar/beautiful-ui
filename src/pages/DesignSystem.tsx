@@ -573,7 +573,7 @@ function Kit() {
         </div>
       </Showcase>
 
-      <Showcase id="sheet" title="Sheet" desc="Panel lateral o inferior sobre <dialog> nativo; también la navegación en móvil.">
+      <Showcase id="sheet" title="Sheet" desc="Panel lateral o inferior (Drawer de UI SDK): se cierra deslizando, con Escape o clic fuera; también la navegación en móvil.">
         <div className="flex flex-wrap justify-center gap-2">
           <Button size="sm" onClick={() => setSheet("right")}>
             Panel lateral
@@ -793,7 +793,7 @@ export const NAV = [
   { group: "Átomos", items: [["button", "Button"], ["pills", "ValuePill · EntityChip"], ["shimmer", "Shimmer · StreamText"]] },
   {
     group: "Elementos básicos",
-    items: [["campos", "Campos"], ["seleccion", "Selección"], ["navegacion", "Segmented · Tabs"], ["estados", "Estado · Avatar"], ["cards", "Cards"], ["feedback", "Alert · Empty"], ["overlays", "Overlays"], ["popover", "Popover · Combobox"], ["sheet", "Sheet"], ["comandos", "Command palette"], ["datatable", "DataTable"], ["navegacion-2", "Breadcrumb · Pagination"], ["menu-contextual", "Menú contextual"], ["estructura", "Accordion · Skeleton"], ["entradas", "Slider · MultiSelect"], ["fechas", "Fechas"], ["validacion", "Formularios"]],
+    items: [["campos", "Campos"], ["seleccion", "Selección"], ["navegacion", "Segmented · Tabs"], ["estados", "Estado · Avatar"], ["cards", "Cards"], ["feedback", "Alert · Empty"], ["overlays", "Overlays"], ["popover", "Popover · Combobox"], ["sheet", "Sheet"], ["comandos", "Command palette"], ["datatable", "DataTable"], ["navegacion-2", "Breadcrumb · Pagination"], ["menu-contextual", "Menú contextual"], ["estructura", "Accordion · Skeleton"], ["entradas", "Slider · MultiSelect"], ["acceso", "Password · OTP"], ["actividad", "Meter · Timeline"], ["paneles", "Resizable"], ["fechas", "Fechas"], ["validacion", "Formularios"]],
   },
   { group: "Datos", items: [["lineas", "LineChart"], ["barras", "BarChart"], ["cuota", "Stat · SegmentedBar"]] },
   { group: "Plantillas", items: [["plantillas", "Páginas completas"]] },

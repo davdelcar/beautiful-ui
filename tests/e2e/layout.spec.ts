@@ -82,13 +82,13 @@ async function optionsReachable(page: Page) {
 test("desplegable dentro de un Sheet: visible, clicable y Escape no cierra el Sheet", async ({ page }) => {
   await page.goto("#sheet");
   await page.getByRole("button", { name: "Hoja inferior" }).click();
-  await page.locator("dialog[open] button[aria-haspopup=listbox]").click();
+  await page.locator("[role=dialog] button[aria-haspopup=listbox]").click();
   const ok = await optionsReachable(page);
   expect(ok.length).toBeGreaterThan(0);
   expect(ok.every(Boolean)).toBe(true);
   await page.keyboard.press("Escape");
-  await expect(page.locator("dialog[open]")).toHaveCount(1);
-  await expect(page.locator("dialog[open] [role=listbox]")).toHaveCount(0);
+  await expect(page.locator("[role=dialog]")).toHaveCount(1);
+  await expect(page.locator("[role=dialog] [role=listbox]")).toHaveCount(0);
 });
 
 test("menú dentro de una card: visible y clicable", async ({ page }) => {

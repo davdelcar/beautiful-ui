@@ -90,10 +90,11 @@ export default function Layout({ children }: { children: ReactNode }) {
     "src/app/page.tsx": `import { Button } from "@/components/ui";
 import ListDetailPage from "@/components/blocks/ListDetailPage";
 import LoginPage from "@/components/blocks/LoginPage";
+import SettingsPage from "@/components/blocks/SettingsPage";
 import ChatDemo from "./ChatDemo";
 
 export default function Page() {
-  return <main><Button>Beautiful UI</Button><ListDetailPage orders={[]} /><LoginPage /><ChatDemo /></main>;
+  return <main><Button>Beautiful UI</Button><ListDetailPage orders={[]} /><LoginPage /><SettingsPage /><ChatDemo /></main>;
 }
 `,
     "src/app/ChatDemo.tsx": `"use client";
@@ -109,19 +110,20 @@ export default function ChatDemo() {
   for (const [filename, body] of Object.entries(fixture)) await writeFile(join(consumer, filename), body);
 
   await run(npm, ["install", "--no-audit", "--no-fund"], consumer);
-  const items = ["list-detail-page", "login-page", "chat-recipe"].map((name) => `${registryUrl}/${name}.json`);
+  const items = ["list-detail-page", "login-page", "settings-page", "chat-recipe"].map((name) => `${registryUrl}/${name}.json`);
   await run(npm, ["exec", "--yes", "--package=shadcn@4.23.0", "--", "shadcn", "add", ...items, "--yes"], consumer);
   await writeFile(join(consumer, "src", "app", "globals.css"), '@import "../components/beautifui/beautiful-ui.css";\n');
 
   await run(npm, ["run", "build"], consumer);
   const output = join(consumer, ".next");
   const html = await readFile(join(output, "server", "app", "index.html"), "utf8");
-  for (const text of ["Beautiful UI", "Pedidos", "Asistente", "bui-theme"]) {
+  for (const text of ["Beautiful UI", "Pedidos", "Ajustes", "Asistente", "bui-theme"]) {
     if (!html.includes(text)) throw new Error(`Falta «${text}» en la página prerenderizada`);
   }
   const styles = (await readdir(join(output, "static"), { recursive: true })).filter((path) => path.endsWith(".css"));
   const css = await Promise.all(styles.map((path) => readFile(join(output, "static", path), "utf8")));
-  if (!css.some((text) => /\.bg-page\s*\{\s*background-color:\s*var\(--page\)/.test(text) && /--page\s*:/.test(text))) {
+  const compiledCss = css.join("\n");
+  if (!/\.bg-page(?=[\s,{])[^{}]*\{[^{}]*background-color:\s*var\(--page\)/.test(compiledCss) || !/--page\s*:/.test(compiledCss)) {
     throw new Error("La compilación de Next no contiene las utilidades de Beautiful UI.");
   }
   console.log("✓ Next.js App Router: instalación shadcn, build, HTML prerenderizado y tokens verificados.");

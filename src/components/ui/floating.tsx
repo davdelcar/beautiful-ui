@@ -1,12 +1,14 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type HTMLAttributes, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
+import { createRovingFocus, definePrimitive, isComposing } from "@ui-sdk/core";
+import { usePrimitive } from "@ui-sdk/react/primitive";
 import { cn } from "@/lib/utils";
 
 /* Capa flotante común (Select, Combobox, Menu, Popover, fechas, Tooltip):
  * - se renderiza en un portal: ningún contenedor con overflow (cards, tablas,
  *   Sheet, Dialog, Accordion) puede recortarla;
- * - dentro de un <dialog> modal se monta en el propio diálogo (capa superior,
- *   sin quedar inerte);
+ * - dentro de un <dialog> modal o de un popup de UI SDK (Dialog, Sheet) se monta
+ *   en esa capa superior, sin quedar inerte ni debajo;
  * - posición fija calculada desde el disparador, con volteo arriba/abajo si no
  *   cabe y ajuste horizontal para no salirse de la pantalla;
  * - se recoloca al hacer scroll, al redimensionar y si cambia su tamaño. */
@@ -52,7 +54,7 @@ export function Floating({
       return;
     }
     const a = anchor.current;
-    setContainer((a?.closest("dialog[open]") as HTMLElement | null) ?? document.body);
+    setContainer((a?.closest("dialog[open], [popover]:popover-open") as HTMLElement | null) ?? document.body);
 
     const place = () => {
       const el = ref.current;
@@ -69,7 +71,8 @@ export function Floating({
       left = Math.max(GAP, Math.min(left, innerWidth - w - GAP));
       /* si el contenedor del portal tiene transform, es el bloque contenedor de "fixed": compensa */
       const host = el.parentElement;
-      const cb = host && host !== document.body && getComputedStyle(host).transform !== "none" ? host.getBoundingClientRect() : null;
+      const hs = host && host !== document.body ? getComputedStyle(host) : null;
+      const cb = hs && (hs.transform !== "none" || hs.translate !== "none" || hs.scale !== "none") ? host!.getBoundingClientRect() : null;
       const y = top - (cb?.top ?? 0);
       const x = left - (cb?.left ?? 0);
       setPos((p) =>
@@ -107,7 +110,7 @@ export function Floating({
         maxHeight: pos?.maxHeight,
         /* opacity (no visibility) mientras se coloca: así autoFocus funciona en el primer frame */
         opacity: pos ? undefined : 0,
-        pointerEvents: pos ? undefined : "none",
+        pointerEvents: pos ? "auto" : "none",
         animation: pos ? "pop-in 160ms cubic-bezier(0.23,1,0.32,1) both" : undefined,
         transformOrigin: `${s === "bottom" ? "top" : "bottom"} ${align === "end" ? "right" : align === "center" ? "center" : "left"}`,
         ...style,
@@ -125,22 +128,78 @@ export function Floating({
  * ↑ ↓ Inicio Fin mueven el foco entre `selector`; al abrir enfoca el
  * seleccionado o el primero.
  */
-export function useRovingFocus(panel: RefObject<HTMLElement | null>, open: boolean, selector: string) {
+const floatingFocus = definePrimitive({
+  name: "beautiful-ui-floating-focus",
+  state: () => ({ focused: null as string | null }),
+  api: (context) => ({
+    roving: createRovingFocus(context, { slot: "item", key: "focused", loop: () => true }),
+  }),
+  slots: (slot) => ({ item: slot({}) }),
+});
+
+export function useRovingFocus(panel: RefObject<HTMLElement | null>, open: boolean, selector: string, focusOnOpen = true) {
+  const { api: { roving } } = usePrimitive(floatingFocus, {});
+  const items = useRef(new Map<HTMLElement, () => void>());
+  const nextKey = useRef(0);
+
+  const syncItems = () => {
+    const candidates = panel.current?.querySelectorAll<HTMLElement>(selector) ?? [];
+    const eligible = new Set([...candidates].filter((element) => !element.matches("[disabled], [aria-disabled='true']")));
+    for (const [element, unbind] of items.current) {
+      if (!eligible.has(element)) {
+        unbind();
+        items.current.delete(element);
+      }
+    }
+    for (const element of eligible) {
+      if (!items.current.has(element)) {
+        items.current.set(element, roving.bind(element, { key: String(nextKey.current++), props: {} }));
+      }
+    }
+  };
+
   useLayoutEffect(() => {
     if (!open) return;
     const id = requestAnimationFrame(() => {
-      const items = [...(panel.current?.querySelectorAll<HTMLElement>(selector) ?? [])];
-      (items.find((i) => i.getAttribute("aria-selected") === "true" || i.getAttribute("aria-checked") === "true") ?? items[0])?.focus({ preventScroll: true });
+      syncItems();
+      if (!focusOnOpen) return;
+      const options = roving.items();
+      const initial = options.find(({ el }) => el.matches("[aria-selected='true'], [aria-checked='true']")) ?? options[0];
+      if (initial) roving.focus(initial.key);
     });
-    return () => cancelAnimationFrame(id);
-  }, [open, panel, selector]);
+    return () => {
+      cancelAnimationFrame(id);
+      for (const unbind of items.current.values()) unbind();
+      items.current.clear();
+    };
+    // The panel mounts in a portal. Bind its latest options after it opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, panel, selector, focusOnOpen, roving]);
+
   return (e: React.KeyboardEvent) => {
-    const items = [...(panel.current?.querySelectorAll<HTMLElement>(selector) ?? [])].filter((i) => !i.hasAttribute("disabled"));
-    if (!items.length) return;
-    const i = items.indexOf(document.activeElement as HTMLElement);
-    const next = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: items.length - 1 }[e.key];
-    if (next === undefined) return;
-    e.preventDefault();
-    items[(next + items.length) % items.length].focus();
+    if (!open || !["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key) || e.defaultPrevented || isComposing(e.nativeEvent)) return;
+    syncItems();
+    if (e.target instanceof HTMLElement && roving.keydown(e.nativeEvent, e.target)) e.preventDefault();
   };
+}
+
+/**
+ * Enlaza `<label htmlFor={id}>` con un control cuyo elemento enfocable lo crea
+ * UI SDK (p. ej. los `<input>` de los tiradores de Slider): les pone
+ * `aria-labelledby` con el id de la etiqueta, creándolo si no lo tiene.
+ */
+export function useLabelFor(root: RefObject<HTMLElement | null>, id: string | undefined, selector: string) {
+  useLayoutEffect(() => {
+    if (!id || !root.current) return;
+    const label = document.querySelector<HTMLLabelElement>(`label[for="${CSS.escape(id)}"]`);
+    if (!label) return;
+    if (!label.id) label.id = `${id}-label`;
+    root.current.querySelectorAll(selector).forEach((el, i) => {
+      /* con aria-label propio (tiradores de un rango): «Precio Mínimo» */
+      if (el.getAttribute("aria-label")) {
+        if (!el.id) el.id = `${id}-${i}`;
+        el.setAttribute("aria-labelledby", `${label.id} ${el.id}`);
+      } else el.setAttribute("aria-labelledby", label.id);
+    });
+  });
 }

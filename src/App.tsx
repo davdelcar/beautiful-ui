@@ -10,13 +10,13 @@ import { TEMPLATES } from "@/pages/templates";
 
 const ExampleApp = lazy(() => import("@/pages/ExampleApp"));
 
-const PAGES = Object.fromEntries(TEMPLATES.map((t) => [t.id, lazy(t.load)]));
+const PAGES = new Map(TEMPLATES.map((t) => [t.id, lazy(t.load)]));
 
 const route = () => {
-  const h = window.location.hash;
-  if (h.startsWith("#/app")) return { name: "app" as const };
-  const m = h.match(/^#\/plantillas\/([\w-]+)/);
-  if (m && PAGES[m[1]]) return { name: "template" as const, id: m[1] };
+  const h = window.location.hash.replace(/\/+$/, "");
+  if (h === "#/app") return { name: "app" as const };
+  const m = h.match(/^#\/plantillas\/([\w-]+)$/);
+  if (m && PAGES.has(m[1])) return { name: "template" as const, id: m[1] };
   return { name: "gallery" as const };
 };
 
@@ -33,13 +33,19 @@ export default function App() {
     window.addEventListener("hashchange", on);
     return () => window.removeEventListener("hashchange", on);
   }, []);
+  useEffect(() => {
+    if (r.name !== "gallery") return;
+    const anchor = window.location.hash.slice(1);
+    if (anchor && !anchor.startsWith("/")) document.getElementById(anchor)?.scrollIntoView();
+  }, [r]);
 
   const fallback = (
-    <div className="flex min-h-dvh items-center justify-center bg-page text-ink-3">
+    <div className="flex min-h-dvh items-center justify-center bg-page text-ink-3" role="status">
+      <span className="sr-only">Cargando página</span>
       <Spinner size={18} />
     </div>
   );
-  const Page = r.name === "template" ? PAGES[r.id] : null;
+  const Page = r.name === "template" ? PAGES.get(r.id) : null;
 
   return (
     <UIProvider locale="es-ES">

@@ -25,9 +25,11 @@ export default function GlideMenu({
     if (!(target instanceof Element) || !container) return;
     const row = target.closest(rowSelector);
     if (!(row instanceof HTMLElement) || !container.contains(row)) return;
-    const containerRect = container.getBoundingClientRect();
-    const rowRect = row.getBoundingClientRect();
-    setBox({ top: rowRect.top - containerRect.top, height: rowRect.height });
+    /* layout box, not getBoundingClientRect: panels open with a scale
+     * animation, and a scaled measurement would leave the layer short */
+    let top = 0;
+    for (let el: HTMLElement | null = row; el && el !== container; el = el.offsetParent as HTMLElement | null) top += el.offsetTop;
+    setBox({ top, height: row.offsetHeight });
     setVisible(true);
   };
 

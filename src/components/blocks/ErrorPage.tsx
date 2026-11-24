@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Button, IconArrowRight, IconSearch, Input } from "@/components/ui";
+import { Button, IconArrowRight, IconSearch, Input, buttonVariants } from "@/components/ui";
 
 /* Plantilla: páginas de error y estados de sistema. */
 
@@ -17,11 +17,15 @@ export default function ErrorPage({
   title,
   text,
   actions,
+  homeHref = "#/",
+  onSearch,
 }: {
   code?: keyof typeof VARIANTS;
   title?: ReactNode;
   text?: ReactNode;
   actions?: ReactNode;
+  homeHref?: string;
+  onSearch?: (query: string) => void;
 }) {
   const v = VARIANTS[code];
   return (
@@ -34,21 +38,23 @@ export default function ErrorPage({
           <h1 className="text-title text-ink">{title ?? v.title}</h1>
           <p className="mt-2 text-lead text-ink-2">{text ?? v.text}</p>
         </div>
-        {code === 404 && (
-          <form className="w-full max-w-80" onSubmit={(e) => e.preventDefault()} role="search">
-            <Input leading={<IconSearch size={14} />} placeholder="Buscar en la app…" aria-label="Buscar" />
+        {code === 404 && onSearch && (
+          <form className="w-full max-w-80" onSubmit={(event) => {
+            event.preventDefault();
+            const query = String(new FormData(event.currentTarget).get("query") ?? "").trim();
+            if (query) onSearch(query);
+          }} role="search">
+            <Input name="query" type="search" leading={<IconSearch size={14} />} placeholder="Buscar en la app…" aria-label="Buscar" />
           </form>
         )}
         <div className="flex flex-wrap justify-center gap-2">
           {actions ?? (
             <>
-              <Button size="sm" onClick={() => history.back()}>
+              <Button size="sm" onClick={() => window.history.length > 1 ? window.history.back() : window.location.assign(homeHref)}>
                 Volver
               </Button>
-              <a href="#/">
-                <Button size="sm" variant="primary">
-                  Ir al inicio <IconArrowRight size={13} />
-                </Button>
+              <a href={homeHref} className={buttonVariants({ size: "sm", variant: "primary" })}>
+                Ir al inicio <IconArrowRight size={13} />
               </a>
             </>
           )}

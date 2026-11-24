@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { createFocusRecovery } from "@ui-sdk/core";
 import GlideMenu from "@/components/primitives/GlideMenu";
 
 /* ─────────────────────────────────────────────────────────
@@ -43,6 +44,11 @@ export default function SearchList({
   variant?: string;
 } = {}) {
   const [query, setQuery] = useState("");
+  const input = useRef<HTMLInputElement>(null);
+  const [recovery] = useState(() => createFocusRecovery({ fallback: () => input.current }));
+  const clearRef = useCallback((element: HTMLButtonElement | null) => {
+    if (element) return recovery.bind(element, { key: "clear", props: {} });
+  }, [recovery]);
   const results = query
     ? items.filter((i) => i.toLowerCase().includes(query.toLowerCase()))
     : items.slice(0, 5);
@@ -58,6 +64,7 @@ export default function SearchList({
             <path d="M21 21l-4.3-4.3" />
           </svg>
           <input
+            ref={input}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={labels.placeholder}
@@ -66,6 +73,7 @@ export default function SearchList({
           />
           {query && (
             <button
+              ref={clearRef}
               aria-label="Clear search"
               type="button"
               onClick={() => setQuery("")}

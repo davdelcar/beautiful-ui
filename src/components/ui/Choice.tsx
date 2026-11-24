@@ -1,11 +1,18 @@
-import { useId, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import { Checkbox as SDKCheckbox, CheckboxIndicator } from "@ui-sdk/react/checkbox";
+import { Radio, RadioGroup as SDKRadioGroup, RadioIndicator } from "@ui-sdk/react/radio";
+import { Switch as SDKSwitch, SwitchThumb } from "@ui-sdk/react/switch";
 import { cn } from "@/lib/utils";
 
-/* Checkbox, radio y switch. Controles accesibles (input nativo oculto) con
- * la piel de la librería: caja `surface` + `shadow-btn`, relleno de acento
- * al marcar y la curva ease-out-strong en todos los cambios. */
+/* Checkbox, radio y switch sobre UI SDK (rol ARIA, input nativo para
+ * formularios, flechas en el grupo de radios) con la piel de la librería:
+ * caja `surface` + `shadow-btn`, relleno de acento al marcar y la curva
+ * ease-out-strong en todos los cambios. */
 
-const ease = "cubic-bezier(0.23,1,0.32,1)";
+const ring = "bui-ring outline-none focus-visible:shadow-[0_0_0_2px_var(--page),0_0_0_4px_var(--accent)]";
+const box = `flex size-4 shrink-0 items-center justify-center transition-[background-color,box-shadow] duration-150 ${ring}
+  bg-surface shadow-btn data-unchecked:group-hover/choice:bg-hover data-disabled:cursor-default`;
+const row = "group/choice inline-flex items-center gap-2 text-body text-ink has-[[data-disabled]]:opacity-50";
 
 export function Checkbox({
   checked,
@@ -14,6 +21,7 @@ export function Checkbox({
   label,
   disabled,
   className,
+  id,
   "aria-label": ariaLabel,
 }: {
   checked: boolean;
@@ -22,36 +30,35 @@ export function Checkbox({
   label?: ReactNode;
   disabled?: boolean;
   className?: string;
+  id?: string;
   /** nombre accesible cuando no hay `label` visible */
   "aria-label"?: string;
 }) {
-  const on = checked || indeterminate;
   return (
-    <label className={cn("group inline-flex items-center gap-2 text-body text-ink", disabled && "opacity-50", className)}>
-      <input
-        type="checkbox"
-        className="peer sr-only"
+    <label className={cn(row, className)}>
+      <SDKCheckbox
+        id={id}
         aria-label={ariaLabel}
-        checked={checked}
+        checked={indeterminate ? "indeterminate" : checked}
+        onCheckedChange={(v) => onChange(v === true)}
         disabled={disabled}
-        ref={(el) => {
-          if (el) el.indeterminate = indeterminate;
-        }}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      <span
-        aria-hidden
         className={cn(
-          `flex size-4 shrink-0 items-center justify-center rounded-[5px] transition-[background-color,box-shadow] duration-150
-           peer-focus-visible:shadow-[0_0_0_2px_var(--page),0_0_0_4px_var(--accent)]`,
-          on ? "bg-accent text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]" : "bg-surface shadow-btn group-hover:bg-hover",
+          box,
+          `rounded-[5px] data-checked:bg-accent data-checked:text-white data-checked:shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]
+           data-indeterminate:bg-accent data-indeterminate:text-white data-indeterminate:shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]
+           focus-visible:data-checked:shadow-[0_0_0_2px_var(--page),0_0_0_4px_var(--accent)]
+           focus-visible:data-indeterminate:shadow-[0_0_0_2px_var(--page),0_0_0_4px_var(--accent)]`,
         )}
       >
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
-          style={{ transform: on ? "scale(1)" : "scale(0.4)", opacity: on ? 1 : 0, transition: `transform 200ms ${ease}, opacity 120ms` }}>
-          {indeterminate ? <path d="M6 12h12" /> : <path d="M20 6L9 17l-5-5" />}
-        </svg>
-      </span>
+        <CheckboxIndicator
+          keepMounted
+          className="flex scale-40 opacity-0 transition-[transform,opacity] duration-200 ease-[var(--ease-out-strong)] data-checked:scale-100 data-checked:opacity-100 data-indeterminate:scale-100 data-indeterminate:opacity-100"
+        >
+          <svg aria-hidden width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+            {indeterminate ? <path d="M6 12h12" /> : <path d="M20 6L9 17l-5-5" />}
+          </svg>
+        </CheckboxIndicator>
+      </SDKCheckbox>
       {label}
     </label>
   );
@@ -61,36 +68,41 @@ export function RadioGroup<T extends string>({
   value,
   onChange,
   options,
+  disabled,
   className,
+  "aria-label": ariaLabel,
 }: {
   value: T;
   onChange: (value: T) => void;
   options: { value: T; label: ReactNode; disabled?: boolean }[];
+  disabled?: boolean;
   className?: string;
+  "aria-label"?: string;
 }) {
-  const name = useId();
   return (
-    <div role="radiogroup" className={cn("flex flex-col gap-2", className)}>
-      {options.map((o) => {
-        const on = o.value === value;
-        return (
-          <label key={o.value} className={cn("group inline-flex items-center gap-2 text-body text-ink", o.disabled && "opacity-50")}>
-            <input type="radio" name={name} className="peer sr-only" checked={on} disabled={o.disabled} onChange={() => onChange(o.value)} />
-            <span
-              aria-hidden
-              className={cn(
-                `flex size-4 shrink-0 items-center justify-center rounded-full transition-[background-color,box-shadow] duration-150
-                 peer-focus-visible:shadow-[0_0_0_2px_var(--page),0_0_0_4px_var(--accent)]`,
-                on ? "bg-accent" : "bg-surface shadow-btn group-hover:bg-hover",
-              )}
-            >
-              <span className="size-1.5 rounded-full bg-white" style={{ transform: on ? "scale(1)" : "scale(0)", transition: `transform 200ms ${ease}` }} />
-            </span>
-            {o.label}
-          </label>
-        );
-      })}
-    </div>
+    <SDKRadioGroup
+      value={value}
+      onValueChange={(v) => v != null && onChange(v as T)}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      className={cn("flex flex-col gap-2", className)}
+    >
+      {options.map((o) => (
+        <label key={o.value} className={row}>
+          <Radio
+            value={o.value}
+            disabled={o.disabled}
+            className={cn(box, "rounded-full data-checked:bg-accent data-checked:shadow-none focus-visible:data-checked:shadow-[0_0_0_2px_var(--page),0_0_0_4px_var(--accent)]")}
+          >
+            <RadioIndicator
+              keepMounted
+              className="size-1.5 scale-0 rounded-full bg-white transition-transform duration-200 ease-[var(--ease-out-strong)] data-checked:scale-100"
+            />
+          </Radio>
+          {o.label}
+        </label>
+      ))}
+    </SDKRadioGroup>
   );
 }
 
@@ -100,6 +112,7 @@ export function Switch({
   label,
   disabled,
   className,
+  id,
   "aria-label": ariaLabel,
 }: {
   checked: boolean;
@@ -107,25 +120,23 @@ export function Switch({
   label?: ReactNode;
   disabled?: boolean;
   className?: string;
+  id?: string;
   /** nombre accesible cuando no hay `label` visible */
   "aria-label"?: string;
 }) {
   return (
-    <label className={cn("inline-flex items-center gap-2 text-body text-ink", disabled && "opacity-50", className)}>
-      <input type="checkbox" role="switch" className="peer sr-only" aria-label={ariaLabel} checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
-      <span
-        aria-hidden
-        className={cn(
-          `relative h-[18px] w-[30px] shrink-0 rounded-full transition-colors duration-200
-           peer-focus-visible:shadow-[0_0_0_2px_var(--page),0_0_0_4px_var(--accent)]`,
-          checked ? "bg-accent" : "bg-hover-2 shadow-[inset_0_0_0_1px_var(--line-strong)]",
-        )}
+    <label className={cn(row, className)}>
+      <SDKSwitch
+        id={id}
+        aria-label={ariaLabel}
+        checked={checked}
+        onCheckedChange={(v) => onChange(v)}
+        disabled={disabled}
+        className={`relative h-[18px] w-[30px] shrink-0 rounded-full bg-hover-2 shadow-[inset_0_0_0_1px_var(--line-strong)] transition-[background-color,box-shadow] duration-200
+          data-checked:bg-accent data-checked:shadow-none ${ring} focus-visible:data-checked:shadow-[0_0_0_2px_var(--page),0_0_0_4px_var(--accent)]`}
       >
-        <span
-          className="absolute top-0.5 left-0.5 size-3.5 rounded-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.25)]"
-          style={{ transform: `translateX(${checked ? 12 : 0}px)`, transition: `transform 240ms ${ease}` }}
-        />
-      </span>
+        <SwitchThumb className="absolute top-0.5 left-0.5 size-3.5 rounded-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.25)] transition-transform duration-[240ms] ease-[var(--ease-out-strong)] data-checked:translate-x-3 rtl:data-checked:-translate-x-3" />
+      </SDKSwitch>
       {label}
     </label>
   );

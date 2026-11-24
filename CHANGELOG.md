@@ -2,6 +2,23 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/). Cada versión tiene su registro fijo en `https://davdelcar.github.io/beautiful-ui/r/vX.Y.Z/`.
 
+## 2.3.0 — 2026-11-24
+
+### Añadido
+- `PasswordInput` (ver/ocultar, aviso de Bloq Mayús, se oculta al enviar) y `OtpInput` (un solo input con `autocomplete="one-time-code"`, grupos y `onComplete`). La plantilla de login usa `PasswordInput`.
+- `Meter` (rol `meter`, formato con Intl y umbrales de aviso/peligro), `Timeline` (historial o proceso navegable con flechas) y `Resizable` + `ResizablePanel` + `ResizableHandle` (teclado, plegado y `autoSaveId`).
+- `Slider` admite `[desde, hasta]` para un rango con dos tiradores; `NumberInput` interpreta números según el idioma.
+
+### Cambiado
+- `Checkbox`, `RadioGroup`, `Switch`, `Select`, `Menu`, `ContextMenu`, `Dialog` y `Sheet` pasan a UI SDK con la misma API y la misma piel: rol ARIA e input nativo para formularios, flechas en los radios, búsqueda al teclear en Select y Menu, pulsación larga en ContextMenu y Sheet que se cierra deslizando. Los overlays viven en la capa superior del navegador.
+- `Select` expone rol `combobox` en el disparador (antes `button`) y admite `disabled` por opción.
+- Los desplegables propios (Combobox, Popover, fechas) se montan dentro del Dialog o Sheet abierto para no quedar inertes.
+
+### Corregido
+- El anillo de foco global de la fundación ya no se suma al anillo propio de Checkbox, Radio, Switch y las asas de `Resizable`, ni les cambia el radio.
+- El resaltado de `GlideMenu` medía las filas durante la animación de entrada y quedaba más bajo que la fila.
+- La demo automática de `PromptBar` ya no captura Escape de un Dialog abierto encima.
+
 ## 2.2.0 — 2026-11-22
 
 ### Añadido

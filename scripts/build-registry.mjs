@@ -22,6 +22,7 @@ import { fileURLToPath } from "node:url";
 import { writeRegistryApi } from "./registry-api.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const PKG = JSON.parse(await readFile(join(ROOT, "package.json"), "utf8"));
 const SRC = join(ROOT, "src");
 /* REGISTRY_OUT: escribe solo el registro en otra carpeta (snapshots versionados en CI) */
 const OUT = process.env.REGISTRY_OUT || join(ROOT, "public", "r");
@@ -83,7 +84,7 @@ async function addItem({ name, type, title, description, files, extraDeps = [], 
       const it = itemForImport(spec);
       if (it && it !== name) reg.add(it);
       const pkg = packageFor(spec);
-      if (pkg) deps.add(pkg);
+      if (pkg) deps.add(pkg.startsWith("@ui-sdk/") ? `${pkg}@${PKG.dependencies[pkg]}` : pkg);
     }
     out.push({ path: f.to, content, type: f.type ?? type, target: f.to });
   }
@@ -163,7 +164,9 @@ for (const dir of ["atoms", "primitives"]) {
       name,
       type: dir === "atoms" || name === "glide-menu" ? "registry:ui" : "registry:component",
       title: file.replace(/\.tsx$/, ""),
-      description: ATTRIBUTION,
+      description: name === "search-field"
+        ? "Campo de búsqueda con borrado accesible y recuperación de foco mediante UI SDK."
+        : ATTRIBUTION,
       extraRegistryDeps: ["foundation"],
       files: [{ from: `components/${dir}/${file}`, to: `components/${dir}/${file}`, transform: name === "sidebar-nav" }],
     });
@@ -298,7 +301,6 @@ for (const [name, paths] of [
   }));
   await writeFile(join(examplesOut, `${name}.json`), JSON.stringify({ files }) + "\n");
 }
-const PKG = JSON.parse(await readFile(join(ROOT, "package.json"), "utf8"));
 await writeFile(
   join(OUT, "registry.json"),
   JSON.stringify(

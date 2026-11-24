@@ -9,6 +9,7 @@ import { afterAll, beforeAll, expect, it } from "vitest";
 
 type RegistryItem = {
   name: string;
+  dependencies?: string[];
   registryDependencies: string[];
   files: { target: string; content: string }[];
 };
@@ -125,6 +126,18 @@ it("genera un índice de exports con notas y dependencias válidas", async () =>
   expect(index.useToast.kind).toBe("hook");
   expect(index.MenuItem.kind).toBe("type");
   expect(index.Select.usage).toContain("id={f.id}");
+  expect(index.SearchField.item).toBe("search-field");
+  const { dependencies } = JSON.parse(await readFile("package.json", "utf8"));
+  expect(byName.get("search-field")?.dependencies).toEqual([
+    `@ui-sdk/core@${dependencies["@ui-sdk/core"]}`,
+    `@ui-sdk/react@${dependencies["@ui-sdk/react"]}`,
+  ]);
+  expect(byName.get("list-detail-page")?.registryDependencies).toContain(`${origin}/r/search-field.json`);
+  for (const name of ["ui-kit", "prompt-bar", "chat-composer", "search", "sidebar-nav"]) {
+    expect(byName.get(name)?.dependencies).toContain(`@ui-sdk/core@${dependencies["@ui-sdk/core"]}`);
+  }
+  expect(byName.get("ui-kit")?.dependencies).toContain(`@ui-sdk/react@${dependencies["@ui-sdk/react"]}`);
+  expect(byName.get("ui-kit")?.registryDependencies).not.toContain(`${origin}/r/search-field.json`);
   expect(byName.get("chat-recipe")?.registryDependencies).toEqual(
     ["prompt-bar", "streaming-text", "ui-kit"].map((name) => `${origin}/r/${name}.json`),
   );

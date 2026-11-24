@@ -23,6 +23,8 @@ const es = {
   dropzoneRemove: "Quitar",
   increase: "Aumentar",
   decrease: "Disminuir",
+  rangeFrom: "Mínimo",
+  rangeTo: "Máximo",
   pickDate: "Elegir fecha",
   today: "Hoy",
   clear: "Limpiar",
@@ -42,6 +44,11 @@ const es = {
   fileTooBig: "supera el tamaño máximo",
   sortAsc: "Orden ascendente",
   sortDesc: "Orden descendente",
+  showPassword: "Mostrar contraseña",
+  hidePassword: "Ocultar contraseña",
+  capsLock: "Bloq Mayús",
+  otpCode: "Código de verificación",
+  resize: "Redimensionar",
 };
 export type Labels = typeof es;
 
@@ -66,6 +73,8 @@ const en: Labels = {
   dropzoneRemove: "Remove",
   increase: "Increase",
   decrease: "Decrease",
+  rangeFrom: "Minimum",
+  rangeTo: "Maximum",
   pickDate: "Pick a date",
   today: "Today",
   clear: "Clear",
@@ -85,6 +94,11 @@ const en: Labels = {
   fileTooBig: "exceeds the maximum size",
   sortAsc: "Sort ascending",
   sortDesc: "Sort descending",
+  showPassword: "Show password",
+  hidePassword: "Hide password",
+  capsLock: "Caps Lock",
+  otpCode: "Verification code",
+  resize: "Resize",
 };
 
 export const LABELS = { es, en };

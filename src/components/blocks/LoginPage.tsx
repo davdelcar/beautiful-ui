@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { z } from "zod";
 import { Form, FormError, FormField, FormSubmit, useZodForm } from "@/components/form";
-import { Button, Checkbox, Input, Separator, ThemeToggle } from "@/components/ui";
+import { Button, Checkbox, Input, PasswordInput, Separator, ThemeToggle, useToast } from "@/components/ui";
 
 /* Plantilla: inicio de sesión y registro en una card centrada.
  * Sustituye `onSubmit` por tu llamada de auth; lanza un Error para mostrarlo arriba. */
@@ -25,6 +25,7 @@ type Props = {
   defaultMode?: "login" | "register";
   onSubmit?: (values: Partial<Values>, mode: "login" | "register") => Promise<void>;
   onSocial?: (provider: "google" | "github") => void;
+  onForgotPassword?: (email: string) => void;
 };
 
 export default function LoginPage(props: Props) {
@@ -37,11 +38,11 @@ function AuthCard({
   brand = "Acme",
   mode,
   setMode,
-  onSubmit = async () => {
-    await new Promise((r) => setTimeout(r, 900));
-  },
+  onSubmit,
   onSocial,
+  onForgotPassword,
 }: Props & { mode: "login" | "register"; setMode: (m: "login" | "register") => void }) {
+  const toast = useToast();
   const [done, setDone] = useState(false);
   const form = useZodForm((mode === "login" ? loginWithName : register) as typeof register, {
     defaultValues: { email: "", password: "", remember: true, name: "" },
@@ -50,7 +51,8 @@ function AuthCard({
 
   const submit = async (v: Partial<Values>) => {
     try {
-      await onSubmit(v, mode);
+      if (onSubmit) await onSubmit(v, mode);
+      else await new Promise((r) => setTimeout(r, 900));
       setDone(true);
     } catch (e) {
       form.setError("root", { message: e instanceof Error ? e.message : "No se pudo continuar" });
@@ -77,22 +79,25 @@ function AuthCard({
           {done ? (
             <div className="flex flex-col items-center gap-2 py-6 text-center" style={{ animation: "fade-in 200ms ease-out both" }}>
               <span className="text-heading text-ink">{isLogin ? "¡Hola de nuevo!" : "Cuenta creada"}</span>
-              <span className="text-body text-ink-3">Redirigiendo…</span>
               <Button size="sm" variant="quiet" onClick={() => setDone(false)}>
                 Volver
               </Button>
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-2">
-                <Button size="sm" type="button" onClick={() => onSocial?.("google")}>
-                  <GoogleMark /> Google
-                </Button>
-                <Button size="sm" type="button" onClick={() => onSocial?.("github")}>
-                  <GithubMark /> GitHub
-                </Button>
-              </div>
-              <Separator label="o con tu email" className="my-4" />
+              {(onSocial || !onSubmit) && (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button size="sm" type="button" onClick={() => onSocial ? onSocial("google") : toast("Google no está conectado en esta demo.")}>
+                      <GoogleMark /> Google
+                    </Button>
+                    <Button size="sm" type="button" onClick={() => onSocial ? onSocial("github") : toast("GitHub no está conectado en esta demo.")}>
+                      <GithubMark /> GitHub
+                    </Button>
+                  </div>
+                  <Separator label="o con tu email" className="my-4" />
+                </>
+              )}
               <Form form={form} onSubmit={submit}>
                 <FormError />
                 {!isLogin && (
@@ -104,16 +109,35 @@ function AuthCard({
                   {(f) => <Input {...f.input} type="email" autoComplete="email" placeholder="ana@empresa.com" />}
                 </FormField>
                 <FormField<Values> name="password" label="Contraseña" hint={isLogin ? undefined : "Mínimo 8 caracteres."}>
-                  {(f) => <Input {...f.input} type="password" autoComplete={isLogin ? "current-password" : "new-password"} />}
+                  {(f) => (
+                    <PasswordInput
+                      id={f.input.id}
+                      name={f.input.name}
+                      value={f.input.value}
+                      onChange={f.onChange}
+                      onBlur={f.onBlur}
+                      aria-invalid={f.input["aria-invalid"]}
+                      aria-describedby={f.input["aria-describedby"]}
+                      autoComplete={isLogin ? "current-password" : "new-password"}
+                    />
+                  )}
                 </FormField>
                 {isLogin && (
                   <div className="flex items-center justify-between">
                     <FormField<Values> name="remember">
                       {(f) => <Checkbox checked={!!f.value} onChange={f.onChange} label="Recordarme" />}
                     </FormField>
-                    <a href="#" className="text-meta text-accent-ink hover:underline">
-                      ¿Olvidaste la contraseña?
-                    </a>
+                    {(onForgotPassword || !onSubmit) && (
+                      <button
+                        type="button"
+                        className="text-meta text-accent-ink hover:underline"
+                        onClick={() => onForgotPassword
+                          ? onForgotPassword(form.getValues("email").trim())
+                          : toast("La recuperación de contraseña no está conectada en esta demo.")}
+                      >
+                        ¿Olvidaste la contraseña?
+                      </button>
+                    )}
                   </div>
                 )}
                 <FormSubmit size="md" className="w-full">

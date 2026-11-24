@@ -24,9 +24,15 @@ import {
   Input,
   LineChart,
   MultiSelect,
+  Meter,
   NumberInput,
+  OtpInput,
   Pagination,
+  PasswordInput,
   Progress,
+  Resizable,
+  ResizableHandle,
+  ResizablePanel,
   Segmented,
   SegmentedBar,
   Separator,
@@ -36,6 +42,7 @@ import {
   Stat,
   Stepper,
   Switch,
+  Timeline,
   UIProvider,
   addDays,
   setAccent,
@@ -159,6 +166,11 @@ export function MoreKit() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [vol, setVol] = useState(40);
+  const [price, setPrice] = useState<[number, number]>([20, 80]);
+  const [pw, setPw] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpDone, setOtpDone] = useState(false);
+  const nf1 = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 1 });
   const [qty, setQty] = useState<number | null>(3);
   const [tags, setTags] = useState<string[]>(["crm", "ai"]);
   const [files, setFiles] = useState<File[]>([]);
@@ -257,6 +269,7 @@ export function MoreKit() {
         <Card className="primitive-card-pad mx-auto grid max-w-140 gap-4 sm:grid-cols-2">
           <UI.Field label="Volumen">{(id) => <Slider id={id} value={vol} onChange={setVol} showValue format={(v) => `${v} %`} />}</UI.Field>
           <UI.Field label="Cantidad">{(id) => <NumberInput id={id} value={qty} onChange={setQty} min={0} max={99} suffix="uds" />}</UI.Field>
+          <UI.Field label="Precio" className="sm:col-span-2">{(id) => <Slider id={id} value={price} onChange={setPrice} step={5} showValue format={(v) => `${v} €`} />}</UI.Field>
           <UI.Field label="Módulos" className="sm:col-span-2">
             {(id) => (
               <MultiSelect
@@ -274,6 +287,58 @@ export function MoreKit() {
             )}
           </UI.Field>
           <Dropzone className="sm:col-span-2" files={files} onFilesChange={setFiles} maxSize={5 * 1024 * 1024} hint="Cualquier archivo, hasta 5 MB" />
+        </Card>
+      </Showcase>
+
+      <Showcase id="acceso" title="PasswordInput · OtpInput" desc="Contraseña con ver/ocultar y aviso de Bloq Mayús; código de un solo uso que se pega y se autocompleta del SMS.">
+        <Card className="primitive-card-pad mx-auto flex max-w-100 flex-col gap-4">
+          <UI.Field label="Contraseña" hint="Mínimo 12 caracteres.">{(id) => <PasswordInput id={id} value={pw} onChange={setPw} autoComplete="new-password" placeholder="••••••••••••" />}</UI.Field>
+          <UI.Field label="Código de verificación" hint={otpDone ? "Código completo: verificando…" : "Te lo hemos enviado por SMS."}>
+            {(id) => <OtpInput id={id} value={otp} onChange={(v) => (setOtp(v), setOtpDone(false))} onComplete={() => setOtpDone(true)} groupSize={3} />}
+          </UI.Field>
+        </Card>
+      </Showcase>
+
+      <Showcase id="actividad" title="Meter · Timeline" desc="Medidas dentro de un rango con umbrales; historial o pasos de un proceso navegable con flechas.">
+        <div className="mx-auto grid max-w-170 gap-4 sm:grid-cols-2">
+          <Card className="primitive-card-pad flex flex-col gap-4">
+            <Meter label="Almacenamiento" value={7.4} max={10} format={(v) => `${nf1.format(v)} de 10 GB`} thresholds={[7, 9]} />
+            <Meter label="Llamadas a la API" value={42} />
+            <Meter label="Asientos" value={24} max={25} format={(v) => `${v} de 25`} thresholds={[20, 24]} />
+          </Card>
+          <Card className="primitive-card-pad">
+            <Timeline
+              items={[
+                { title: "Pedido recibido", time: "09:12", status: "complete" },
+                { title: "Pago confirmado", time: "09:14", status: "complete", description: "Visa ···· 4242" },
+                { title: "Preparando envío", time: "Ahora", status: "current", description: "Almacén de Valencia" },
+                { title: "En reparto", status: "upcoming" },
+              ]}
+            />
+          </Card>
+        </div>
+      </Showcase>
+
+      <Showcase id="paneles" title="Resizable" desc="Paneles que se redimensionan con ratón, dedo o teclado; Intro pliega el lateral.">
+        <Card className="mx-auto h-64 max-w-170 overflow-hidden p-0">
+          <Resizable autoSaveId="bui-gallery-panels" className="h-full">
+            <ResizablePanel defaultSize={30} minSize={20} collapsible className="bg-inset p-3">
+              <div className="text-overline text-ink-3 uppercase">Archivos</div>
+              <ul className="mt-2 flex flex-col gap-1 text-body text-ink-2">
+                <li>informe-q3.md</li>
+                <li>ventas.csv</li>
+                <li>notas.txt</li>
+              </ul>
+            </ResizablePanel>
+            <ResizableHandle aria-label="Redimensionar archivos" />
+            <ResizablePanel minSize={30}>
+              <Resizable orientation="vertical" className="h-full">
+                <ResizablePanel defaultSize={65} className="p-3 text-body text-ink-2">Editor — arrastra las líneas o enfócalas con Tab y usa las flechas.</ResizablePanel>
+                <ResizableHandle aria-label="Redimensionar terminal" />
+                <ResizablePanel minSize={15} className="bg-inset p-3 font-mono text-micro text-ink-3">$ npm run dev</ResizablePanel>
+              </Resizable>
+            </ResizablePanel>
+          </Resizable>
         </Card>
       </Showcase>
 

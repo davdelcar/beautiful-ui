@@ -1,21 +1,25 @@
 import {
   createContext,
+  isValidElement,
   useCallback,
   useContext,
   useEffect,
+  useId,
   useRef,
   useState,
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+import { bindLayer } from "@ui-sdk/core";
+import { Tooltip as SDKTooltip, TooltipContent, TooltipTrigger } from "@ui-sdk/react/tooltip";
+import { Menu as SDKMenu, MenuContent, MenuContextTrigger, MenuItem, MenuSeparator, MenuTrigger } from "@ui-sdk/react/menu";
+import { Dialog as SDKDialog, DialogBackdrop, DialogContent, DialogDescription, DialogTitle } from "@ui-sdk/react/dialog";
+import { Select as SDKSelect, SelectContent, SelectItem, SelectTrigger } from "@ui-sdk/react/select";
 import GlideMenu from "@/components/primitives/GlideMenu";
 import { Button } from "@/components/atoms/Button";
 import { cn } from "@/lib/utils";
 import { IconCheck, IconCheckCircle, IconChevronDown } from "./icons";
 import { useLabels } from "./i18n";
-import { Floating, useRovingFocus } from "./floating";
-
-const POP = "pop-in 180ms cubic-bezier(0.23,1,0.32,1) both";
 
 /**
  * Abierto/cerrado de un panel flotante: cierra con clic fuera (del disparador
@@ -26,27 +30,28 @@ export function usePopover() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const focusTrigger = () => ref.current?.querySelector<HTMLElement>("button, [tabindex]:not([tabindex='-1']), input")?.focus();
+  const focusTrigger = () => {
+    const trigger = ref.current?.querySelector<HTMLElement>("[aria-expanded]") ??
+      ref.current?.querySelector<HTMLElement>("button, [tabindex]:not([tabindex='-1']), input");
+    trigger?.focus();
+  };
   useEffect(() => {
-    if (!open) return;
-    const inside = (t: EventTarget | null) => !!t && (ref.current?.contains(t as Node) || panelRef.current?.contains(t as Node));
-    const onDown = (e: PointerEvent) => {
-      if (!inside(e.target)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault(); // no dispares el cierre del <dialog> que lo contiene
-        e.stopPropagation();
+    if (!open || !ref.current) return;
+    const unbind = bindLayer(ref.current, {
+      contains: (target) => panelRef.current?.contains(target) ?? false,
+      onDismiss: (reason) => {
         setOpen(false);
-        focusTrigger();
-      } else if (e.key === "Tab" && inside(document.activeElement) && panelRef.current?.contains(document.activeElement)) {
+        if (reason === "escape-key") focusTrigger();
+      },
+    });
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Tab" && panelRef.current?.contains(document.activeElement)) {
         setOpen(false);
       }
     };
-    document.addEventListener("pointerdown", onDown);
     window.addEventListener("keydown", onKey, true);
     return () => {
-      document.removeEventListener("pointerdown", onDown);
+      unbind();
       window.removeEventListener("keydown", onKey, true);
     };
   }, [open]);
@@ -60,59 +65,64 @@ export type MenuItem =
   | { type: "label"; label: ReactNode }
   | { type: "separator" };
 
-/** Menú desplegable — panel `shadow-overlay` con resaltado GlideMenu. */
+/** Panel de menú y lista (Menu, ContextMenu y Select): superficie `shadow-overlay`, entrada pop-in desde el disparador. */
+export const PANEL = `rounded-card bg-surface p-1 shadow-overlay outline-none origin-(--transform-origin)
+  transition-[opacity,scale] duration-[180ms] ease-[var(--ease-out-strong)]
+  data-starting-style:scale-96 data-starting-style:opacity-0 data-ending-style:scale-96 data-ending-style:opacity-0 motion-reduce:transition-none`;
+const ROW = "relative z-10 flex h-8 w-full items-center gap-2 rounded-chip px-2 text-left text-body outline-none select-none";
+
+/** Menú desplegable sobre UI SDK (flechas, búsqueda al teclear, foco de vuelta al disparador) con resaltado GlideMenu. */
 export function Menu({
   trigger,
   items,
   align = "start",
   className,
 }: {
-  /** recibe `open` para pintar el estado del disparador */
+  /** recibe `open` para pintar el estado del disparador; `toggle` se mantiene por compatibilidad (el SDK ya abre al pulsar) */
   trigger: (props: { open: boolean; toggle: () => void }) => ReactNode;
   items: MenuItem[];
   align?: "start" | "end";
   className?: string;
 }) {
-  const { open, setOpen, ref, panelRef, focusTrigger } = usePopover();
-  const onKeyDown = useRovingFocus(panelRef, open, "[role=menuitem]");
+  const [open, setOpen] = useState(false);
+  const el = trigger({ open, toggle: () => {} });
   return (
-    <div ref={ref} className={cn("relative inline-flex", className)}>
-      {trigger({ open, toggle: () => setOpen((o) => !o) })}
-      <Floating anchor={ref} open={open} align={align} panelRef={panelRef} role="menu" onKeyDown={onKeyDown} className="w-52 rounded-card bg-surface p-1 shadow-overlay">
-        <MenuList items={items} onDone={() => (setOpen(false), focusTrigger())} />
-      </Floating>
-    </div>
+    <span className={cn("relative inline-flex", className)}>
+      <SDKMenu open={open} onOpenChange={setOpen}>
+        <MenuTrigger render={isValidElement(el) ? el : <span className="inline-flex">{el}</span>} />
+        <MenuContent align={align} sideOffset={6} className={cn(PANEL, "w-52")}>
+          <MenuList items={items} />
+        </MenuContent>
+      </SDKMenu>
+    </span>
   );
 }
 
 /** Filas de menú compartidas por Menu y ContextMenu. */
-function MenuList({ items, onDone }: { items: MenuItem[]; onDone: () => void }) {
+function MenuList({ items }: { items: MenuItem[] }) {
   return (
     <GlideMenu className="flex flex-col gap-px" highlightClassName="inset-x-0 rounded-chip bg-hover-2">
       {items.map((item, i) => {
-        if (item.type === "separator") return <div key={i} role="separator" className="-mx-1 my-1 h-px bg-line" />;
+        if (item.type === "separator") return <MenuSeparator key={i} className="-mx-1 my-1 h-px bg-line" />;
         if (item.type === "label")
           return (
-            <div key={i} className="px-2 pt-1.5 pb-1 text-overline text-ink-3 uppercase">
+            <div key={i} role="presentation" className="px-2 pt-1.5 pb-1 text-overline text-ink-3 uppercase">
               {item.label}
             </div>
           );
         return (
-          <button
+          <MenuItem
             key={i}
             data-menu-row
-            role="menuitem"
-            type="button"
-            onClick={() => {
-              item.onSelect?.();
-              onDone();
-            }}
-            className={cn("relative z-10 flex h-8 w-full items-center gap-2 rounded-chip px-2 text-left text-body outline-none focus-visible:bg-hover-2", item.danger ? "text-red" : "text-ink")}
+            destructive={item.danger}
+            label={typeof item.label === "string" ? item.label : undefined}
+            onSelect={() => item.onSelect?.()}
+            className={cn(ROW, item.danger ? "text-red" : "text-ink", "data-disabled:opacity-50")}
           >
             {item.icon && <span className={cn("flex shrink-0", item.danger ? "text-red" : "text-ink-3")}>{item.icon}</span>}
             <span className="min-w-0 flex-1 truncate">{item.label}</span>
             {item.shortcut && <span className="text-micro text-ink-3">{item.shortcut}</span>}
-          </button>
+          </MenuItem>
         );
       })}
     </GlideMenu>
@@ -120,132 +130,70 @@ function MenuList({ items, onDone }: { items: MenuItem[]; onDone: () => void }) 
 }
 
 /**
- * Menú contextual (clic derecho o Mayús+F10) sobre cualquier zona. Mismo panel
- * que Menu, posicionado en el puntero y recolocado para no salirse de la pantalla.
+ * Menú contextual (clic derecho, pulsación larga o Mayús+F10) sobre cualquier zona.
+ * Mismo panel que Menu, en el puntero y recolocado por el SDK para no salirse de la pantalla.
  */
 export function ContextMenu({ items, children, className }: { items: MenuItem[]; children: ReactNode; className?: string }) {
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
-  const panel = useRef<HTMLDivElement>(null);
-  const zone = useRef<HTMLDivElement>(null);
-  const onKeyDown = useRovingFocus(panel, !!pos, "[role=menuitem]");
-  useEffect(() => {
-    if (!pos) return;
-    const close = (e: Event) => {
-      if (e.type === "keydown" && (e as KeyboardEvent).key !== "Escape") return;
-      if (e.type === "pointerdown" && panel.current?.contains(e.target as Node)) return;
-      setPos(null);
-    };
-    const evs = ["pointerdown", "keydown", "scroll", "resize", "blur"];
-    evs.forEach((ev) => window.addEventListener(ev, close, true));
-    const el = panel.current;
-    if (el) {
-      const r = el.getBoundingClientRect();
-      const x = Math.min(pos.x, window.innerWidth - r.width - 8);
-      const y = Math.min(pos.y, window.innerHeight - r.height - 8);
-      if (x !== pos.x || y !== pos.y) setPos({ x, y });
-    }
-    return () => evs.forEach((ev) => window.removeEventListener(ev, close, true));
-  }, [pos]);
   return (
-    <div
-      ref={zone}
-      className={className}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        setPos({ x: e.clientX, y: e.clientY });
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "F10" && e.shiftKey) {
-          e.preventDefault();
-          const r = (e.target as HTMLElement).getBoundingClientRect();
-          setPos({ x: r.left + 8, y: r.bottom + 4 });
-        }
-      }}
-    >
-      {children}
-      {pos &&
-        createPortal(
-          <div
-            ref={panel}
-            role="menu"
-            onKeyDown={onKeyDown}
-            className="bui-pop fixed z-[var(--z-overlay)] w-52 rounded-card bg-surface p-1 shadow-overlay"
-            style={{ left: pos.x, top: pos.y, animation: POP, transformOrigin: "top left" }}
-          >
-            <MenuList items={items} onDone={() => setPos(null)} />
-          </div>,
-          (zone.current?.closest("dialog[open]") as HTMLElement | null) ?? document.body,
-        )}
-    </div>
+    <SDKMenu>
+      <MenuContextTrigger render={<div className={className} />}>{children}</MenuContextTrigger>
+      <MenuContent className={cn(PANEL, "w-52")}>
+        <MenuList items={items} />
+      </MenuContent>
+    </SDKMenu>
   );
 }
 
 /* ── Select ────────────────────────────────────────────── */
 
-/** Select propio: botón `surface` + `shadow-btn`, lista con GlideMenu, check y flechas ↑ ↓. */
+/** Select sobre UI SDK: botón con la piel de Input, lista con GlideMenu y check; flechas, Inicio/Fin y búsqueda al teclear. */
 export function Select<T extends string>({
   value,
   onChange,
   options,
   placeholder,
+  disabled,
   className,
   id,
   "aria-label": ariaLabel,
 }: {
   value: T | null;
   onChange: (value: T) => void;
-  options: { value: T; label: ReactNode }[];
+  options: { value: T; label: ReactNode; disabled?: boolean }[];
   placeholder?: string;
+  disabled?: boolean;
   className?: string;
   id?: string;
   "aria-label"?: string;
 }) {
-  const { open, setOpen, ref, panelRef, focusTrigger } = usePopover();
   const L = useLabels();
-  const onKeyDown = useRovingFocus(panelRef, open, "[role=option]");
+  const [open, setOpen] = useState(false);
   const current = options.find((o) => o.value === value);
   return (
-    <div ref={ref} className={cn("relative", className)}>
-      <button
-        id={id}
-        type="button"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-label={ariaLabel}
-        onClick={() => setOpen((o) => !o)}
-        onKeyDown={(e) => {
-          if (!open && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
-            e.preventDefault();
-            setOpen(true);
-          }
-        }}
-        className={TRIGGER}
-      >
-        <span className={cn("truncate", current ? "text-ink" : "text-ink-3")}>{current?.label ?? placeholder ?? L.select}</span>
-        <Chevron open={open} />
-      </button>
-      <Floating anchor={ref} open={open} width="trigger" panelRef={panelRef} role="listbox" onKeyDown={onKeyDown} className="overflow-y-auto rounded-card bg-surface p-1 shadow-overlay">
-        <GlideMenu className="flex flex-col gap-px" highlightClassName="inset-x-0 rounded-chip bg-hover-2">
-          {options.map((o) => (
-            <button
-              key={o.value}
-              data-menu-row
-              role="option"
-              aria-selected={o.value === value}
-              type="button"
-              onClick={() => {
-                onChange(o.value);
-                setOpen(false);
-                focusTrigger();
-              }}
-              className="relative z-10 flex h-8 w-full items-center justify-between gap-3 rounded-chip px-2 text-left text-body text-ink outline-none focus-visible:bg-hover-2"
-            >
-              <span className="truncate">{o.label}</span>
-              <IconCheck size={13} className={cn("shrink-0 text-accent-ink", o.value !== value && "invisible")} />
-            </button>
-          ))}
-        </GlideMenu>
-      </Floating>
+    <div className={cn("relative", className)}>
+      <SDKSelect<T> value={value} onValueChange={(v) => v != null && onChange(v as T)} open={open} onOpenChange={setOpen} disabled={disabled}>
+        <SelectTrigger id={id} aria-label={ariaLabel} className={TRIGGER}>
+          <span className={cn("truncate", current ? "text-ink" : "text-ink-3")}>{current?.label ?? placeholder ?? L.select}</span>
+          <Chevron open={open} />
+        </SelectTrigger>
+        <SelectContent sideOffset={6} className={cn(PANEL, "max-h-(--available-height) min-w-(--anchor-width) overflow-y-auto")}>
+          <GlideMenu className="flex flex-col gap-px" highlightClassName="inset-x-0 rounded-chip bg-hover-2">
+            {options.map((o) => (
+              <SelectItem
+                key={o.value}
+                value={o.value}
+                disabled={o.disabled}
+                label={typeof o.label === "string" ? o.label : undefined}
+                data-menu-row
+                className={cn(ROW, "justify-between gap-3 text-ink data-disabled:opacity-50")}
+              >
+                <span className="truncate">{o.label}</span>
+                <IconCheck size={13} className={cn("shrink-0 text-accent-ink", o.value !== value && "invisible")} />
+              </SelectItem>
+            ))}
+          </GlideMenu>
+        </SelectContent>
+      </SDKSelect>
     </div>
   );
 }
@@ -266,44 +214,33 @@ export function Chevron({ open }: { open: boolean }) {
 
 /** Tooltip oscuro (tokens --tooltip-*) con retardo de entrada; en portal, nunca queda recortado. */
 export function Tooltip({ content, children, side = "top" }: { content: ReactNode; children: ReactNode; side?: "top" | "bottom" }) {
-  const [show, setShow] = useState(false);
-  const timer = useRef<number>(undefined);
-  const anchor = useRef<HTMLSpanElement>(null);
-  const enter = () => {
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setShow(true), 250);
-  };
-  const leave = () => {
-    window.clearTimeout(timer.current);
-    setShow(false);
-  };
+  const canRenderTrigger = isValidElement(children) && (typeof children.type === "string" || children.type === Button);
+  const trigger = canRenderTrigger ? children : <span className="inline-flex">{children}</span>;
   return (
-    <span ref={anchor} className="relative inline-flex" onPointerEnter={enter} onPointerLeave={leave} onFocus={enter} onBlur={leave} onPointerDown={leave}>
-      {children}
-      <Floating
-        anchor={anchor}
-        open={show}
-        side={side}
-        align="center"
-        role="tooltip"
-        className="pointer-events-none rounded-control border px-2 py-1 text-micro font-medium whitespace-nowrap"
-        style={{
-          background: "var(--tooltip-bg)",
-          color: "var(--tooltip-fg)",
-          borderColor: "var(--tooltip-border)",
-          boxShadow: "var(--shadow-overlay)",
-          animation: "fade-in 120ms ease-out both",
-        }}
-      >
-        {content}
-      </Floating>
+    <span className="relative inline-flex">
+      <SDKTooltip delay={250} closeOnPress type="description">
+        <TooltipTrigger render={trigger} />
+        <TooltipContent
+          side={side}
+          sideOffset={6}
+          className="rounded-control border px-2 py-1 text-micro font-medium whitespace-nowrap data-open:animate-[fade-in_120ms_ease-out_both]"
+          style={{
+            background: "var(--tooltip-bg)",
+            color: "var(--tooltip-fg)",
+            borderColor: "var(--tooltip-border)",
+            boxShadow: "var(--shadow-overlay)",
+          }}
+        >
+          {content}
+        </TooltipContent>
+      </SDKTooltip>
     </span>
   );
 }
 
 /* ── Dialog ────────────────────────────────────────────── */
 
-/** Modal sobre <dialog> nativo: foco atrapado, Escape y backdrop gratis. */
+/** Modal sobre UI SDK (<dialog> en la capa superior): foco atrapado, Escape, clic fuera y el foco vuelve al disparador. */
 export function Dialog({
   open,
   onClose,
@@ -319,28 +256,22 @@ export function Dialog({
   children?: ReactNode;
   footer?: ReactNode;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const d = ref.current;
-    if (!d) return;
-    if (open && !d.open) d.showModal();
-    if (!open && d.open) d.close();
-  }, [open]);
   return (
-    <dialog
-      ref={ref}
-      onClose={onClose}
-      onClick={(e) => e.target === ref.current && onClose()}
-      className="bui-dialog m-auto w-[min(440px,calc(100vw-32px))] overflow-hidden rounded-window bg-surface p-0 text-ink shadow-overlay"
-      style={{ animation: open ? "dialog-in 200ms cubic-bezier(0.23,1,0.32,1) backwards" : undefined }}
-    >
-      <div className="flex flex-col gap-1.5 px-[18px] pt-[18px] pb-4">
-        <h2 className="text-heading">{title}</h2>
-        {description && <p className="text-body text-ink-2">{description}</p>}
-        {children}
-      </div>
-      {footer && <div className="primitive-card-footer flex justify-end gap-1.5 border-t border-line bg-inset">{footer}</div>}
-    </dialog>
+    <SDKDialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogBackdrop className="bui-backdrop fixed inset-0 transition-opacity duration-200 data-starting-style:opacity-0 data-ending-style:opacity-0 motion-reduce:transition-none" />
+      <DialogContent
+        className={`bui-ring fixed inset-0 m-auto h-fit max-h-[calc(100dvh-32px)] w-[min(440px,calc(100vw-32px))] overflow-hidden rounded-window bg-surface p-0 text-ink shadow-overlay outline-none
+          transition-[opacity,scale] duration-200 ease-[var(--ease-out-strong)] data-starting-style:scale-96 data-starting-style:opacity-0
+          data-ending-style:scale-96 data-ending-style:opacity-0 motion-reduce:transition-none`}
+      >
+        <div className="flex flex-col gap-1.5 px-[18px] pt-[18px] pb-4">
+          <DialogTitle className="text-heading">{title}</DialogTitle>
+          {description && <DialogDescription className="text-body text-ink-2">{description}</DialogDescription>}
+          {children}
+        </div>
+        {footer && <div className="primitive-card-footer flex justify-end gap-1.5 border-t border-line bg-inset">{footer}</div>}
+      </DialogContent>
+    </SDKDialog>
   );
 }
 

@@ -68,27 +68,34 @@
 }
 
 /* ── Sheet: entrada desde cada lado ─────────────────────── */
-@keyframes sheet-in-right {
-  from {
-    transform: translateX(100%);
-  }
-}
-@keyframes sheet-in-left {
-  from {
-    transform: translateX(-100%);
-  }
-}
-@keyframes sheet-in-bottom {
-  from {
-    transform: translateY(100%);
-  }
-}
-
 /* el backdrop de los <dialog> del kit aparece con fundido */
 dialog.bui-dialog::backdrop {
   background: oklch(0.2 0.004 264 / 0.35);
   backdrop-filter: blur(2px);
   animation: fade-in 200ms ease-out both;
+}
+/* Controles que pintan su propio anillo de foco (Checkbox, Radio, Switch,
+ * asas de Resizable, Timeline, Dialog/Sheet): anulan el outline global de la
+ * fundación (y su border-radius de 4px) volviendo a las utilidades. */
+.bui-ring:focus-visible {
+  outline: revert-layer;
+  border-radius: revert-layer;
+}
+
+/* caret simulado de OtpInput (el input real es invisible) */
+.bui-caret {
+  animation: caret-blink 1.1s steps(1) infinite;
+}
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* fondo de Dialog y Sheet (UI SDK); en el Sheet el SDK anima su opacidad al abrir y al arrastrar */
+.bui-backdrop {
+  background: oklch(0.2 0.004 264 / 0.35);
+  backdrop-filter: blur(2px);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -248,71 +255,15 @@ dialog.bui-dialog::backdrop {
   grid-template-rows: 0fr;
   transition: grid-template-rows var(--duration-slow) var(--ease-out-strong);
 }
-.bui-collapse[data-open="true"] {
+.bui-collapse:is([data-open="true"], [data-open=""]) {
   grid-template-rows: 1fr;
+}
+.bui-collapse[hidden] {
+  display: none;
 }
 .bui-collapse > * {
   overflow: hidden;
   min-height: 0;
-}
-
-/* ── Slider nativo con la piel del sistema ── */
-.bui-range {
-  appearance: none;
-  height: 20px;
-  background: transparent;
-  cursor: pointer;
-}
-.bui-range::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 999px;
-  background: linear-gradient(to right, var(--accent) var(--fill, 50%), var(--hover-2) var(--fill, 50%));
-}
-.bui-range::-moz-range-track {
-  height: 4px;
-  border-radius: 999px;
-  background: linear-gradient(to right, var(--accent) var(--fill, 50%), var(--hover-2) var(--fill, 50%));
-}
-.bui-range::-webkit-slider-thumb {
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  margin-top: -6px;
-  border-radius: 999px;
-  background: var(--surface);
-  box-shadow: var(--shadow-btn);
-  transition: transform 150ms var(--ease-out-strong);
-}
-.bui-range::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--surface);
-  box-shadow: var(--shadow-btn);
-}
-.bui-range:active::-webkit-slider-thumb {
-  transform: scale(1.12);
-}
-.bui-range:focus-visible {
-  box-shadow: none;
-}
-.bui-range:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 1px var(--accent), 0 0 0 4px var(--accent-tint);
-}
-.bui-range:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-/* números sin flechas nativas (NumberInput trae las suyas) */
-.bui-number::-webkit-inner-spin-button,
-.bui-number::-webkit-outer-spin-button {
-  appearance: none;
-  margin: 0;
-}
-.bui-number {
-  -moz-appearance: textfield;
 }
 
 @media (prefers-reduced-motion: reduce) {

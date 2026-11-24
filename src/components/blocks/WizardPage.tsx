@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { z } from "zod";
-import { Form, FormField, useZodForm } from "@/components/form";
+import { Form, FormError, FormField, useZodForm } from "@/components/form";
 import {
   Button,
   Card,
@@ -70,12 +70,16 @@ export default function WizardPage({ onComplete }: { onComplete?: (values: Value
 
   const next = async () => {
     const ok = await form.trigger(STEPS[step].fields as unknown as (keyof Values)[]);
-    if (ok) setStep((s) => s + 1);
+    if (ok) setStep((current) => current === step ? step + 1 : current);
   };
   const submit = async (v: Values) => {
-    await new Promise((r) => setTimeout(r, 700));
-    await onComplete?.(v);
-    setDone(true);
+    try {
+      if (onComplete) await onComplete(v);
+      else await new Promise((r) => setTimeout(r, 700));
+      setDone(true);
+    } catch (error) {
+      form.setError("root", { message: error instanceof Error ? error.message : "No se pudo crear el espacio." });
+    }
   };
   const v = form.watch();
 
@@ -95,8 +99,8 @@ export default function WizardPage({ onComplete }: { onComplete?: (values: Value
                 <IconCheckCircle size={22} />
               </span>
               <h2 className="text-heading text-ink">{v.company} está listo</h2>
-              <p className="max-w-80 text-body text-ink-3">Hemos preparado {v.modules.length} módulos para {v.seats} personas. Te enviamos los detalles por email.</p>
-              <Button size="sm" variant="primary" onClick={() => (setDone(false), setStep(0), form.reset())}>
+              <p className="max-w-80 text-body text-ink-3">Hemos preparado {v.modules.length} módulos para {v.seats} personas.</p>
+              <Button size="sm" variant="primary" onClick={() => (setDone(false), setStep(0), setLogo([]), form.reset())}>
                 Empezar de nuevo
               </Button>
             </div>
@@ -108,7 +112,7 @@ export default function WizardPage({ onComplete }: { onComplete?: (values: Value
                 style={{ animation: "fade-up 300ms cubic-bezier(0.23,1,0.32,1) both" }}
                 onKeyDown={(e) => {
                   // Enter en un campo avanza de paso en lugar de enviar todo el formulario
-                  if (e.key === "Enter" && !e.defaultPrevented && step < STEPS.length - 1 && (e.target as HTMLElement).tagName === "INPUT") {
+                  if (e.key === "Enter" && !e.defaultPrevented && !e.nativeEvent.isComposing && step < STEPS.length - 1 && (e.target as HTMLElement).tagName === "INPUT") {
                     e.preventDefault();
                     next();
                   }
@@ -163,38 +167,44 @@ export default function WizardPage({ onComplete }: { onComplete?: (values: Value
                   </>
                 )}
                 {step === 3 && (
-                  <dl className="divide-y divide-line overflow-hidden rounded-card bg-inset">
-                    {[
-                      ["Empresa", v.company],
-                      ["País", COUNTRIES.find((c) => c.value === v.country)?.label],
-                      ["Equipo", v.size],
-                      ["Puestos", v.seats],
-                      ["Módulos", v.modules.map((m) => MODULES.find((x) => x.value === m)?.label).join(", ")],
-                      ["Presupuesto", money(v.budget)],
-                      ["Inicio", v.start ? new Intl.DateTimeFormat("es-ES", { dateStyle: "long" }).format(v.start) : "—"],
-                      ["Logo", logo[0]?.name ?? "—"],
-                    ].map(([k, val]) => (
-                      <div key={k as string} className="flex justify-between gap-4 px-3.5 py-2.5 text-body">
-                        <dt className="text-ink-3">{k}</dt>
-                        <dd className="text-right text-ink">{val as string}</dd>
-                      </div>
-                    ))}
-                  </dl>
+                  <>
+                    <FormError />
+                    <dl className="divide-y divide-line overflow-hidden rounded-card bg-inset">
+                      {[
+                        ["Empresa", v.company],
+                        ["País", COUNTRIES.find((c) => c.value === v.country)?.label],
+                        ["Equipo", v.size],
+                        ["Puestos", v.seats],
+                        ["Módulos", v.modules.map((m) => MODULES.find((x) => x.value === m)?.label).join(", ")],
+                        ["Presupuesto", money(v.budget)],
+                        ["Inicio", v.start ? new Intl.DateTimeFormat("es-ES", { dateStyle: "long" }).format(v.start) : "—"],
+                        ["Logo", logo[0]?.name ?? "—"],
+                      ].map(([k, val]) => (
+                        <div key={k as string} className="flex justify-between gap-4 px-3.5 py-2.5 text-body">
+                          <dt className="text-ink-3">{k}</dt>
+                          <dd className="text-right text-ink">{val as string}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </>
                 )}
               </div>
               <div className="primitive-card-footer flex items-center justify-between border-t border-line bg-inset">
-                <Button type="button" size="sm" variant="quiet" disabled={step === 0} onClick={() => setStep((s) => s - 1)}>
+                <Button type="button" size="sm" variant="quiet" disabled={step === 0 || form.formState.isSubmitting} onClick={() => setStep((s) => s - 1)}>
                   Atrás
                 </Button>
                 <span className="text-meta text-ink-3 tabular-nums">
                   {step + 1} / {STEPS.length}
                 </span>
                 {step < STEPS.length - 1 ? (
-                  <Button type="button" size="sm" variant="primary" onClick={next}>
+                  <Button key="continue" type="button" size="sm" variant="primary" onClick={(event) => {
+                    event.preventDefault();
+                    void next();
+                  }}>
                     Continuar <IconArrowRight size={13} />
                   </Button>
                 ) : (
-                  <Button type="submit" size="sm" variant="accent" disabled={form.formState.isSubmitting}>
+                  <Button key="submit" type="submit" size="sm" variant="accent" disabled={form.formState.isSubmitting}>
                     Crear espacio
                   </Button>
                 )}

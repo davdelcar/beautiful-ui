@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
+import { bindLayer, isComposing } from "@ui-sdk/core";
 import { IconArrowBoxLeft } from "@central-icons-react/round-outlined-radius-2-stroke-2/IconArrowBoxLeft";
 import { IconCheckmark1Small } from "@central-icons-react/round-outlined-radius-2-stroke-2/IconCheckmark1Small";
 import { IconChevronDownSmall } from "@central-icons-react/round-outlined-radius-2-stroke-2/IconChevronDownSmall";
@@ -137,13 +138,31 @@ function RailButton({
 
 function WorkspaceMenu({
   position,
+  trigger,
   onClose,
 }: {
   position: { top: number; left: number };
+  trigger: RefObject<HTMLButtonElement | null>;
   onClose: () => void;
 }) {
+  const menu = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!menu.current) return;
+    return bindLayer(menu.current, {
+      contains: (target) => trigger.current?.contains(target) ?? false,
+      onDismiss: (reason) => {
+        onClose();
+        if (reason === "escape-key") trigger.current?.focus();
+      },
+    });
+  }, [onClose, trigger]);
+  const activate = () => {
+    onClose();
+    trigger.current?.focus();
+  };
   return createPortal(
     <div
+      ref={menu}
       data-workspace-menu
       className="fixed z-50 w-64 rounded-[14px] bg-surface p-1.5 shadow-overlay"
       style={{
@@ -151,13 +170,15 @@ function WorkspaceMenu({
         left: position.left,
         animation: "pop-in 180ms cubic-bezier(0.23,1,0.32,1) both",
         transformOrigin: "top left",
+        /* dentro del Sheet (Drawer de UI SDK) el viewport no recibe punteros */
+        pointerEvents: "auto",
       }}
     >
       <GlideMenu className="flex flex-col gap-px" highlightClassName="inset-x-0 rounded-[8px] bg-hover-2">
         <button
           data-menu-row
           type="button"
-          onClick={onClose}
+          onClick={activate}
           className="relative z-10 flex h-10 w-full items-center gap-1.5 rounded-[8px] px-2 text-left"
         >
           <span className="flex size-6 shrink-0 items-center justify-center rounded-[7px] bg-ink text-[11px] font-semibold text-surface">
@@ -176,7 +197,7 @@ function WorkspaceMenu({
             key={item.label}
             data-menu-row
             type="button"
-            onClick={onClose}
+            onClick={activate}
             className="relative z-10 flex h-9 w-full items-center gap-1.5 rounded-[8px] px-2 text-left"
           >
             <span className="flex size-5 shrink-0 items-center justify-center text-ink-2">{item.icon}</span>
@@ -187,7 +208,7 @@ function WorkspaceMenu({
         <button
           data-menu-row
           type="button"
-          onClick={onClose}
+          onClick={activate}
           className="relative z-10 flex h-9 w-full items-center gap-1.5 rounded-[8px] px-2 text-left"
         >
           <span className="flex size-5 shrink-0 items-center justify-center text-ink-2"><IconArrowBoxLeft size={16} /></span>
@@ -195,7 +216,7 @@ function WorkspaceMenu({
         </button>
       </GlideMenu>
     </div>,
-    document.body,
+    (trigger.current?.closest("dialog[open], [popover]:popover-open") as HTMLElement | null) ?? document.body,
   );
 }
 
@@ -225,26 +246,22 @@ export default function SidebarNav({
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const workspaceButtonRef = useRef<HTMLButtonElement>(null);
+  const closeWorkspace = useCallback(() => setWorkspaceOpen(false), []);
   const searchRef = useRef<HTMLInputElement>(null);
+  const searchButtonRef = useRef<HTMLButtonElement>(null);
 
   const selectedTitle = activeTitle === undefined ? demoActiveTitle : activeTitle;
   const visibleRecents = recents.filter((item) => item.label.toLowerCase().includes(query.trim().toLowerCase()));
 
   useEffect(() => {
-    if (!workspaceOpen) return;
-    const close = (event: PointerEvent) => {
-      const target = event.target as Element;
-      if (!target.closest("[data-workspace-trigger]") && !target.closest("[data-workspace-menu]")) {
-        setWorkspaceOpen(false);
-      }
-    };
-    document.addEventListener("pointerdown", close);
-    return () => document.removeEventListener("pointerdown", close);
-  }, [workspaceOpen]);
-
-  useEffect(() => {
     if (searchOpen) searchRef.current?.focus();
   }, [searchOpen]);
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setQuery("");
+    searchButtonRef.current?.focus();
+  };
 
   const collapse = () => {
     setCollapsed(true);
@@ -296,7 +313,7 @@ export default function SidebarNav({
             </span>
           </button>
 
-          {workspaceOpen && <WorkspaceMenu position={workspacePosition} onClose={() => setWorkspaceOpen(false)} />}
+          {workspaceOpen && <WorkspaceMenu position={workspacePosition} trigger={workspaceButtonRef} onClose={closeWorkspace} />}
 
           <button
             type="button"
@@ -354,6 +371,7 @@ export default function SidebarNav({
             </div>
 
             <button
+              ref={searchButtonRef}
               type="button"
               aria-label="Search chats"
               aria-expanded={searchOpen}
@@ -380,9 +398,9 @@ export default function SidebarNav({
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={(event) => {
-                  if (event.key === "Escape") {
-                    setSearchOpen(false);
-                    setQuery("");
+                  if (event.key === "Escape" && !event.defaultPrevented && !isComposing(event)) {
+                    event.preventDefault();
+                    closeSearch();
                   }
                 }}
                 placeholder="Search chats"
@@ -392,10 +410,7 @@ export default function SidebarNav({
               <button
                 type="button"
                 aria-label="Close chat search"
-                onClick={() => {
-                  setSearchOpen(false);
-                  setQuery("");
-                }}
+                onClick={closeSearch}
                 className="flex size-8 shrink-0 items-center justify-center rounded-[8px] text-ink-3 transition-[background-color,color,transform] duration-150 hover:bg-hover-2 hover:text-ink active:scale-[0.96]"
               >
                 <IconCrossSmall size={16} />

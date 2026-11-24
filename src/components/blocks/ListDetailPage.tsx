@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import SearchField from "@/components/primitives/SearchField";
 import {
   Alert,
   Avatar,
@@ -15,9 +16,7 @@ import {
   IconInbox,
   IconPencil,
   IconPlus,
-  IconSearch,
   IconTrash,
-  Input,
   MultiSelect,
   Pagination,
   Separator,
@@ -93,7 +92,6 @@ export default function ListDetailPage({ orders, loading, error, onRetry, onCrea
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openId, setOpenId] = useState<string | null>(null);
   const open = sourceRows.find((order) => order.id === openId);
-  const selectedOrders = sourceRows.filter((order) => selected.has(order.id));
   const hasOrderActions = demo || !!onOrderAction;
 
   const money = (n: number) => n.toLocaleString("es-ES", { style: "currency", currency: "EUR" });
@@ -110,6 +108,7 @@ export default function ListDetailPage({ orders, loading, error, onRetry, onCrea
         (!end || o.date < end),
     );
   }, [sourceRows, query, status, range]);
+  const selectedOrders = filtered.filter((order) => selected.has(order.id));
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE));
   const current = Math.min(page, pages);
 
@@ -186,7 +185,7 @@ export default function ListDetailPage({ orders, loading, error, onRetry, onCrea
   return (
     <div className="min-h-dvh bg-page">
       <div className="mx-auto flex max-w-[1080px] flex-col gap-4 px-4 py-6 sm:px-6">
-        <Breadcrumb items={[{ label: "Acme", href: "#" }, { label: "Ventas", href: "#" }, { label: "Pedidos" }]} />
+        <Breadcrumb items={[{ label: "Acme" }, { label: "Ventas" }, { label: "Pedidos" }]} />
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-title text-ink">Pedidos</h1>
@@ -201,13 +200,11 @@ export default function ListDetailPage({ orders, loading, error, onRetry, onCrea
 
         {/* filtros: una fila, encima de lo que filtran */}
         <div className="flex flex-wrap items-end gap-2">
-          <Input
+          <SearchField
             className="w-full sm:w-64"
             placeholder="Buscar cliente o nº…"
-            aria-label="Buscar"
-            leading={<IconSearch size={14} />}
             value={query}
-            onChange={(e) => (setQuery(e.target.value), setPage(1))}
+            onValueChange={(value) => (setQuery(value), setPage(1))}
           />
           <Field label="Estado" className="w-full sm:w-56">
             {(id) => (

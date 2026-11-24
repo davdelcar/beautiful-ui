@@ -4,7 +4,7 @@
 
 Sistema de diseño completo para apps en React, basado en [beautifului.dev](https://www.beautifului.dev/). Usa **los componentes oficiales de la librería** (los 20 de IA, sus átomos y su fundación) y añade todo lo necesario para construir cualquier app: kit de formularios, fechas, tablas, overlays, navegación y gráficas; validación con zod; plantillas de página; tokens con contraste AA; acentos de marca; i18n; tests y versiones.
 
-React 19 · Tailwind CSS v4 · TypeScript · v2.2.0
+React 19 · Tailwind CSS v4 · TypeScript · v2.3.0
 
 - **Galería:** https://davdelcar.github.io/beautiful-ui/ — app de ejemplo en `#/app`, plantillas en `#plantillas`
 - **Registro shadcn:** https://davdelcar.github.io/beautiful-ui/r/registry.json
@@ -20,7 +20,7 @@ npx shadcn@latest init        # solo si el proyecto aún no tiene components.jso
 npx shadcn@latest add https://davdelcar.github.io/beautiful-ui/r/all.json         # todo
 npx shadcn@latest add https://davdelcar.github.io/beautiful-ui/r/ui-kit.json      # solo el kit
 npx shadcn@latest add https://davdelcar.github.io/beautiful-ui/r/login-page.json  # una plantilla
-npx shadcn@latest add https://davdelcar.github.io/beautiful-ui/r/v2.2.0/all.json  # versión fijada
+npx shadcn@latest add https://davdelcar.github.io/beautiful-ui/r/v2.3.0/all.json  # versión fijada
 ```
 
 Después:
@@ -47,16 +47,21 @@ import LoginPage from "@/components/blocks/LoginPage";
 | `form` | `Form`, `FormField`, `FormSubmit`, `FormError`, `useZodForm` (react-hook-form + zod) |
 | `login-page` · `list-detail-page` · `analytics-page` · `settings-page` · `wizard-page` · `error-page` | Plantillas de página |
 | `chat-recipe` | Chat con historial, envío, carga y error controlados por la aplicación |
+| `search-field` | Buscador controlado con borrado y recuperación de foco mediante [UI SDK](https://ui-sdk.dev/docs/core/behaviors/focus#focus-recovery) |
 | `button` · `entity-chip` · `value-pill` · `shimmer` · `stream-text` · `glide-menu` | Átomos oficiales |
 | `approval-card` · `chat-composer` · `code-block` · `context-cards` · `diff-table` · `filter-table` · `fine-tune-card` · `flowchart` · `insight-cards` · `loading-state` · `prompt-bar` · `recommendation-card` · `records-table` · `search` · `selection-actions` · `sidebar-nav` · `streaming-text` · `task-rows` · `thinking-state` · `tool-chips` | Los 20 componentes oficiales de IA |
 | `utils` · `central-icons` | `cn()` y el sustituto de los iconos de SidebarNav |
 
 Cada item arrastra solo lo que necesita (dependencias npm e items). Para actualizar, repite el `add` con `--overwrite`; para fijar una versión usa `/r/vX.Y.Z/`.
 
+`ui-kit` instala UI SDK para gestionar el teclado, el foco y el cierre de desplegables, además de `Checkbox`, `RadioGroup`, `Switch`, `Select`, `Menu`, `ContextMenu`, `Dialog`, `Sheet`, `Pagination`, `Progress`, `Meter`, `Slider`, `NumberInput`, `PasswordInput`, `OtpInput`, `Timeline` y `Resizable`. Los overlays viven en la capa superior del navegador: no se recortan en cards ni tablas y no necesitan z-index. `Slider` acepta `[desde, hasta]` para un rango con dos tiradores, y `NumberInput` interpreta los números según el idioma (`1.234,5` en español). `Tabs` y `Segmented` se recorren con flechas y activan la opción enfocada. `FilterChips` permite recorrer los filtros con flechas y elegir con Enter. Las firmas públicas y los estilos siguen siendo los de Beautiful UI.
+
+`list-detail-page` instala `search-field`, que devuelve el foco al campo al borrar la búsqueda. Puedes instalar `search-field` por separado y conectar `value` y `onValueChange` al estado de búsqueda. `prompt-bar`, `chat-composer`, `search` y `sidebar-nav` declaran sus propias dependencias para las instalaciones independientes. El registro fija la misma versión de UI SDK que usa la biblioteca.
+
 ## Usarlo desde tus agentes (skill + MCP)
 
 ```bash
-npx -y https://davdelcar.github.io/beautiful-ui/mcp/beautiful-ui-mcp-2.2.0.tgz install
+npx -y https://davdelcar.github.io/beautiful-ui/mcp/beautiful-ui-mcp-2.3.0.tgz install
 # --skill-only | --mcp-only   ·   uninstall para quitarlo
 ```
 
@@ -66,7 +71,7 @@ Instala la **skill** `beautiful-ui` en `~/.claude/skills`, `~/.codex/skills` y `
 
 - **Skill** ([`mcp/skill/SKILL.md`](mcp/skill/SKILL.md)): instalación, reglas, tokens, API completa del kit, gráficas, formularios, plantillas, componentes de IA, composición y checklist.
 - **MCP** ([`mcp/server.mjs`](mcp/server.mjs), sin dependencias, lee el registro en vivo): `list_components`, `get_component`, `get_design_tokens`, `get_install_instructions`, `get_guidelines`, `get_example` (app, galería y las 6 plantillas) y el prompt `beautiful-ui`.
-- Otros clientes MCP: `{ "mcpServers": { "beautiful-ui": { "command": "npx", "args": ["-y", "https://davdelcar.github.io/beautiful-ui/mcp/beautiful-ui-mcp-2.2.0.tgz"] } } }`. En Windows: `"command": "cmd", "args": ["/c", "npx", "-y", "…"]` (el instalador ya lo hace así).
+- Otros clientes MCP: `{ "mcpServers": { "beautiful-ui": { "command": "npx", "args": ["-y", "https://davdelcar.github.io/beautiful-ui/mcp/beautiful-ui-mcp-2.3.0.tgz"] } } }`. En Windows: `"command": "cmd", "args": ["/c", "npx", "-y", "…"]` (el instalador ya lo hace así).
 
 Para integrar una pantalla, revisa primero los componentes que ya tenga el proyecto. Consulta `get_guidelines({ detail: "quick" })` y busca por nombre de React con `get_component({ name: "Select", include_source: false })` para ver el import, el item a instalar y sus notas de uso. Cuando falten piezas, pasa sus nombres a `get_install_instructions` para obtener el comando y los pasos de configuración. En `get_example`, usa `listado` para filtros, tabla y detalle, `login` para formularios validados y `chat` para una conversación con datos del producto.
 
@@ -77,12 +82,12 @@ Las consultas breves incluyen la declaración de TypeScript y sus tipos auxiliar
 | Grupo | Componentes |
 |---|---|
 | Acciones | `Button` (oficial), `IconButton`, `ThemeToggle` |
-| Campos | `Field`, `Input`, `Textarea`, `Select`, `Combobox`, `MultiSelect`, `Checkbox`, `RadioGroup`, `Switch`, `Slider`, `NumberInput`, `Dropzone`, `Kbd` |
+| Campos | `Field`, `Input`, `Textarea`, `Select`, `Combobox`, `MultiSelect`, `Checkbox`, `RadioGroup`, `Switch`, `Slider`, `NumberInput`, `PasswordInput`, `OtpInput`, `Dropzone`, `Kbd` |
 | Fechas | `Calendar` (single/range), `DatePicker`, `DateRangePicker` (presets) |
 | Navegación | `Tabs`, `Segmented`, `FilterChips`, `Breadcrumb`, `Pagination`, `Stepper`, `CommandPalette` + `useHotkey` |
 | Overlays | `Menu`, `ContextMenu`, `Popover`, `Tooltip`, `Dialog`, `Sheet`, `ToastProvider` / `useToast` |
-| Datos | `DataTable` (orden, selección, fila clicable, vacío), `Card`, `Stat` (+ sparkline), `StatusPill`, `Tag`, `Avatar`, `AvatarStack`, `Progress`, `Spinner`, `Alert`, `EmptyState` |
-| Estructura | `Accordion`, `Collapsible`, `Separator`, `Skeleton`, `SkeletonText`, `ScrollArea` |
+| Datos | `DataTable` (orden, selección, fila clicable, vacío), `Card`, `Stat` (+ sparkline), `StatusPill`, `Tag`, `Avatar`, `AvatarStack`, `Progress`, `Meter`, `Timeline`, `Spinner`, `Alert`, `EmptyState` |
+| Estructura | `Accordion`, `Collapsible`, `Separator`, `Skeleton`, `SkeletonText`, `ScrollArea`, `Resizable` |
 | Gráficas | `LineChart` (área), `BarChart` (agrupadas/apiladas), `SegmentedBar`, `Sparkline` — leyenda, tooltip y vista de tabla incluidos |
 | Sistema | `UIProvider` (es/en), `useTheme`, `setTheme`, `setAccent`, `ThemeScript`, iconos |
 

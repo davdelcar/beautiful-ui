@@ -26,6 +26,7 @@ const svg = (body: React.ReactNode, sw = 2) =>
 
 export const IconSearch = svg(<><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></>);
 export const IconPlus = svg(<path d="M12 5v14M5 12h14" />);
+export const IconMinus = svg(<path d="M5 12h14" />);
 export const IconCheck = svg(<path d="M20 6L9 17l-5-5" />, 2.5);
 export const IconX = svg(<path d="M18 6L6 18M6 6l12 12" />);
 export const IconChevronDown = svg(<path d="M6 9l6 6 6-6" />, 2.2);
@@ -49,6 +50,8 @@ export const IconSparkle = ({ size = 14, ...props }: P) => (
     <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z" />
   </svg>
 );
+export const IconEye = svg(<><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" /><circle cx="12" cy="12" r="3" /></>);
+export const IconEyeOff = svg(<><path d="M10.6 5.6A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-2.7 3.4M6.6 6.6C3.9 8.4 2.5 12 2.5 12S6 18.5 12 18.5a9 9 0 0 0 4.9-1.4M9.9 9.9a3 3 0 0 0 4.2 4.2M3 3l18 18" /></>);
 export const IconMenu = svg(<path d="M4 7h16M4 12h16M4 17h16" />);
 export const IconHome = svg(<path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z" />);
 export const IconSettings = svg(

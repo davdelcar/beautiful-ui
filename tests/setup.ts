@@ -17,3 +17,7 @@ HTMLDialogElement.prototype.showModal ??= function (this: HTMLDialogElement) {
 HTMLDialogElement.prototype.close ??= function (this: HTMLDialogElement) {
   this.removeAttribute("open");
 };
+/* UI SDK espera a las animaciones de salida antes de desmontar */
+Element.prototype.getAnimations ??= function () {
+  return [];
+};

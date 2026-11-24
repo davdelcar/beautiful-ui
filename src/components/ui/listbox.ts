@@ -1,4 +1,6 @@
-import { useEffect, useId, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useMemo, useSyncExternalStore, type KeyboardEvent } from "react";
+import { createListbox, definePrimitive, isComposing } from "@ui-sdk/core";
+import { usePrimitive } from "@ui-sdk/react/primitive";
 
 /** Minúsculas y sin tildes, para filtrar "Diseño" escribiendo "diseno". */
 export const normalize = (s: string) =>
@@ -12,16 +14,33 @@ export const matches = (query: string, ...texts: (string | undefined)[]) => {
   return !q || texts.some((t) => t && normalize(t).includes(q));
 };
 
+const virtualList = definePrimitive({
+  name: "beautiful-ui-virtual-list",
+  options: { keys: "value" },
+  state: (_options: { keys: string[] }) => ({ highlighted: null as string | null }),
+  api: (context) => ({
+    listbox: createListbox(context, {
+      key: "highlighted",
+      focus: "virtual",
+      items: () => context.options().keys,
+    }),
+  }),
+  slots: (slot) => ({ root: slot({}) }),
+});
+
 /**
  * Navegación por teclado de una lista con foco "virtual" (aria-activedescendant):
  * ↑ ↓ Inicio Fin mueven el activo, Enter elige. El foco se queda en el input.
  */
 export function useListNav<T>(items: T[], onPick: (item: T) => void) {
   const prefix = useId();
-  const [raw, setActive] = useState(0);
   const n = items.length;
-  const active = n ? Math.min(raw, n - 1) : -1;
+  const keys = useMemo(() => Array.from({ length: n }, (_, i) => String(i)), [n]);
+  const { instance, api: { listbox } } = usePrimitive(virtualList, { keys });
+  const { highlighted } = useSyncExternalStore(instance.subscribe, instance.get, instance.get);
+  const active = n ? Math.min(Number(highlighted ?? 0), n - 1) : -1;
   const optionId = (i: number) => `${prefix}-opt-${i}`;
+  const setActive = (i: number) => listbox.highlight(keys[i] ?? null);
 
   useEffect(() => {
     if (active >= 0) document.getElementById(optionId(active))?.scrollIntoView({ block: "nearest" });
@@ -29,14 +48,17 @@ export function useListNav<T>(items: T[], onPick: (item: T) => void) {
   }, [active]);
 
   const onKeyDown = (e: KeyboardEvent) => {
-    if (!n) return;
-    const move = { ArrowDown: active + 1, ArrowUp: active - 1, Home: 0, End: n - 1 }[e.key];
-    if (move !== undefined) {
-      e.preventDefault();
-      setActive((move + n) % n);
-    } else if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+    if (!n || e.defaultPrevented || isComposing(e.nativeEvent)) return;
+    if (e.key === "Enter") {
       e.preventDefault();
       onPick(items[active]);
+    } else if (e.key === "Home" || e.key === "End") {
+      e.preventDefault();
+      listbox.move(e.key === "Home" ? "first" : "last", e.nativeEvent);
+    } else if (["ArrowDown", "ArrowUp", "PageDown", "PageUp"].includes(e.key)) {
+      if (instance.get().highlighted !== keys[active]) setActive(active);
+      listbox.keydown(e.nativeEvent);
+      if (e.nativeEvent.defaultPrevented) e.preventDefault();
     }
   };
 
